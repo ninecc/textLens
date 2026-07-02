@@ -1,7 +1,7 @@
 import Foundation
 import Security
 
-final class KeychainStore {
+final class KeychainStore: @unchecked Sendable {
     private let service = "TextLens"
     private let account = "translation-api-key"
 

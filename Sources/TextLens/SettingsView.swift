@@ -9,10 +9,12 @@ struct SettingsView: View {
 
     private let settings: SettingsStore
     private let keychain: KeychainStore
+    private let saveModel: SettingsSaveModel
 
     init(settings: SettingsStore, keychain: KeychainStore) {
         self.settings = settings
         self.keychain = keychain
+        saveModel = SettingsSaveModel(settings: settings)
         _baseURL = State(initialValue: settings.baseURL.absoluteString)
         _model = State(initialValue: settings.model)
         _targetLanguage = State(initialValue: settings.targetLanguage)
@@ -32,11 +34,10 @@ struct SettingsView: View {
     }
 
     private func save() {
-        if let url = URL(string: baseURL) {
-            settings.baseURL = url
-        }
-        settings.model = model
-        settings.targetLanguage = targetLanguage
-        keychain.apiKey = apiKey
+        let keychain = keychain
+        saveModel.save(
+            SettingsDraft(baseURL: baseURL, model: model, targetLanguage: targetLanguage, apiKey: apiKey),
+            saveAPIKey: { keychain.apiKey = $0 }
+        )
     }
 }
