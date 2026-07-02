@@ -33,11 +33,21 @@ final class ResultPopover {
         content.addSubview(closeButton)
 
         let point = NSEvent.mouseLocation
-        let frame = NSRect(x: point.x + 12, y: point.y - 236, width: 400, height: 236)
-        let window = NSWindow(contentRect: frame, styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        let size = NSSize(width: 400, height: 236)
+        let visibleFrame = NSScreen.screens.first(where: { $0.frame.contains(point) })?.visibleFrame ?? NSScreen.main?.visibleFrame ?? .zero
+        let frame = NSRect(
+            x: min(max(point.x + 12, visibleFrame.minX), visibleFrame.maxX - size.width),
+            y: min(max(point.y - size.height, visibleFrame.minY), visibleFrame.maxY - size.height),
+            width: size.width,
+            height: size.height
+        )
+        let window = NSPanel(contentRect: frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
         window.level = .floating
+        window.hasShadow = true
+        window.backgroundColor = .windowBackgroundColor
         window.contentView = content
-        window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
         self.window = window
     }
 
@@ -47,7 +57,7 @@ final class ResultPopover {
     }
 
     @objc private func close() {
-        window?.close()
+        window?.orderOut(nil)
         window = nil
     }
 }
