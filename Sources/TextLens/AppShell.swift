@@ -10,6 +10,7 @@ final class AppShell: NSObject, NSApplicationDelegate {
     private let translation = TranslationService()
     private let ocr = OCRService()
     private let popover = ResultPopover()
+    private let hotKeyCenter = HotKeyCenter()
     private lazy var selectionTranslator = SelectionTranslator(
         settings: settings,
         keychain: keychain,
@@ -38,6 +39,9 @@ final class AppShell: NSObject, NSApplicationDelegate {
 
         item.menu = menu
         statusItem = item
+        hotKeyCenter.registerScreenshotHotKey { [weak self] in
+            self?.screenshotTranslate()
+        }
     }
 
     @objc private func translateSelection() {

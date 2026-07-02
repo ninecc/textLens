@@ -11,6 +11,7 @@ let package = Package(
     targets: [
         .executableTarget(name: "TextLens", dependencies: ["TextLensCore"]),
         .target(name: "TextLensCore"),
-        .executableTarget(name: "TextLensChecks", dependencies: ["TextLensCore"], path: "Checks/TextLensChecks")
+        .executableTarget(name: "TextLensChecks", dependencies: ["TextLensCore"], path: "Checks/TextLensChecks"),
+        .testTarget(name: "TextLensTests", dependencies: ["TextLensCore"], path: "Tests/TextLensTests")
     ]
 )
