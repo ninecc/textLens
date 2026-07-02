@@ -39,6 +39,9 @@ final class AppShell: NSObject, NSApplicationDelegate {
 
         item.menu = menu
         statusItem = item
+        hotKeyCenter.registerSelectionHotKey { [weak self] in
+            self?.translateSelection()
+        }
         hotKeyCenter.registerScreenshotHotKey { [weak self] in
             self?.screenshotTranslate()
         }

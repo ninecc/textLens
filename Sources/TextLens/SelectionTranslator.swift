@@ -19,7 +19,12 @@ final class SelectionTranslator {
     }
 
     func translateSelection() {
-        if let text = selectedText(), !text.isEmpty {
+        guard accessibilityTrusted(prompt: true) else {
+            popover.show(original: "", translated: "Accessibility permission is required. Enable it, then try Translate Selection again.")
+            return
+        }
+
+        if let text = SelectionTextResolver.resolve(accessibilityText: selectedText, copiedText: copySelectedText) {
             translate(text: text)
         } else {
             popover.show(original: "", translated: "Could not read selection. Copy text, then use Translate Clipboard.")
@@ -27,7 +32,6 @@ final class SelectionTranslator {
     }
 
     private func selectedText() -> String? {
-        guard AXIsProcessTrusted() else { return nil }
         // ponytail: AX selected text varies by app; clipboard fallback is the first-version escape hatch.
         let systemWide = AXUIElementCreateSystemWide()
         var focused: AnyObject?
@@ -41,6 +45,43 @@ final class SelectionTranslator {
             return nil
         }
         return selected as? String
+    }
+
+    private func accessibilityTrusted(prompt: Bool) -> Bool {
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: prompt] as CFDictionary
+        return AXIsProcessTrustedWithOptions(options)
+    }
+
+    private func copySelectedText() -> String? {
+        let pasteboard = NSPasteboard.general
+        let oldString = pasteboard.string(forType: .string)
+        let oldChangeCount = pasteboard.changeCount
+
+        postCopyShortcut()
+        RunLoop.current.run(until: Date().addingTimeInterval(0.12))
+
+        let copied = pasteboard.changeCount == oldChangeCount ? nil : pasteboard.string(forType: .string)
+        restorePasteboard(oldString)
+        return copied
+    }
+
+    private func postCopyShortcut() {
+        guard let source = CGEventSource(stateID: .hidSystemState),
+              let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 8, keyDown: true),
+              let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 8, keyDown: false) else {
+            return
+        }
+        keyDown.flags = .maskCommand
+        keyUp.flags = .maskCommand
+        keyDown.post(tap: .cghidEventTap)
+        keyUp.post(tap: .cghidEventTap)
+    }
+
+    private func restorePasteboard(_ text: String?) {
+        NSPasteboard.general.clearContents()
+        if let text {
+            NSPasteboard.general.setString(text, forType: .string)
+        }
     }
 
     private func translate(text: String) {
