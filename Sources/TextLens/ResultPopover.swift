@@ -5,6 +5,12 @@ final class ResultPopover {
     private var translatedText = ""
 
     func show(original: String, translated: String) {
+        DispatchQueue.main.async { [weak self] in
+            self?.present(original: original, translated: translated)
+        }
+    }
+
+    private func present(original: String, translated: String) {
         translatedText = translated
 
         let textView = NSTextView(frame: NSRect(x: 12, y: 44, width: 376, height: 180))
