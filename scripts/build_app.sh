@@ -2,7 +2,9 @@
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-BIN_DIR=$(cd "$ROOT" && swift build --product TextLens --show-bin-path)
+cd "$ROOT"
+swift build --product TextLens
+BIN_DIR=$(swift build --product TextLens --show-bin-path)
 APP="$ROOT/.build/TextLens.app"
 
 rm -rf "$APP"
