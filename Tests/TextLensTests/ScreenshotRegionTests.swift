@@ -30,4 +30,15 @@ final class ScreenshotRegionTests: XCTestCase {
 
         XCTAssertEqual(rect, CGRect(x: 80, y: 200, width: 400, height: 200))
     }
+
+    func testDisplayCaptureRectIsIntegralAndClampedToImageBounds() {
+        let rect = ScreenshotRegion.displayCaptureRect(
+            region: CGRect(x: 980.4, y: 760.2, width: 40, height: 60),
+            screenSize: CGSize(width: 1000, height: 800),
+            scale: 2,
+            imageSize: CGSize(width: 2000, height: 1600)
+        )
+
+        XCTAssertEqual(rect, CGRect(x: 1960, y: 0, width: 40, height: 80))
+    }
 }

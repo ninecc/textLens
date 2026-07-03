@@ -18,4 +18,9 @@ public enum ScreenshotRegion {
             height: region.height * scale
         )
     }
+
+    public static func displayCaptureRect(region: CGRect, screenSize: CGSize, scale: CGFloat, imageSize: CGSize) -> CGRect {
+        let rect = displayCaptureRect(region: region, screenSize: screenSize, scale: scale).integral
+        return rect.intersection(CGRect(origin: .zero, size: imageSize))
+    }
 }

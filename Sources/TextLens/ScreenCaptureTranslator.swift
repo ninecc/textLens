@@ -75,8 +75,19 @@ final class ScreenCaptureTranslator {
             .map({ CGDirectDisplayID(truncating: $0) }) else {
             return nil
         }
-        let rect = ScreenshotRegion.displayCaptureRect(region: region, screenSize: screen.frame.size, scale: screen.backingScaleFactor)
-        return CGDisplayCreateImage(displayID, rect: rect)
+        guard let image = CGDisplayCreateImage(displayID) else {
+            return nil
+        }
+        let rect = ScreenshotRegion.displayCaptureRect(
+            region: region,
+            screenSize: screen.frame.size,
+            scale: screen.backingScaleFactor,
+            imageSize: CGSize(width: image.width, height: image.height)
+        )
+        guard !rect.isNull, rect.width > 0, rect.height > 0 else {
+            return nil
+        }
+        return image.cropping(to: rect)
     }
 
     private func anchorRect(region: CGRect, on screen: NSScreen) -> CGRect {
