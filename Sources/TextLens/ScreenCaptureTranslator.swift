@@ -43,7 +43,7 @@ final class ScreenCaptureTranslator {
     }
 
     private func translate(region: CGRect, on screen: NSScreen) {
-        let anchor = globalRect(region: region, on: screen)
+        let anchor = anchorRect(region: region, on: screen)
         guard let image = capture(region: region, on: screen) else {
             popover.show(original: "", translated: "Could not capture the selected region.", anchor: anchor, backgroundOpacity: popoverOpacity)
             return
@@ -71,10 +71,11 @@ final class ScreenCaptureTranslator {
     }
 
     private func capture(region: CGRect, on screen: NSScreen) -> CGImage? {
-        CGWindowListCreateImage(globalRect(region: region, on: screen), .optionOnScreenOnly, kCGNullWindowID, [.bestResolution])
+        let rect = ScreenshotRegion.captureRect(region: region, screenFrame: screen.frame)
+        return CGWindowListCreateImage(rect, .optionOnScreenOnly, kCGNullWindowID, [.bestResolution])
     }
 
-    private func globalRect(region: CGRect, on screen: NSScreen) -> CGRect {
+    private func anchorRect(region: CGRect, on screen: NSScreen) -> CGRect {
         CGRect(
             x: screen.frame.minX + region.minX,
             y: screen.frame.minY + region.minY,
