@@ -2,6 +2,15 @@ import SwiftUI
 import TextLensCore
 
 struct SettingsView: View {
+    private enum Pane: String, CaseIterable, Identifiable {
+        case translation = "Translation"
+        case popover = "Popover"
+        case api = "API"
+
+        var id: Self { self }
+    }
+
+    @State private var selectedPane: Pane = .translation
     @State private var baseURL: String
     @State private var model: String
     @State private var targetLanguage: String
@@ -38,15 +47,29 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        Form {
-            translationSection
-            credentialsSection
-            popoverSection
-            apiFallbackSection
-            actionsSection
+        HStack(spacing: 0) {
+            List(Pane.allCases, selection: $selectedPane) { pane in
+                Text(pane.rawValue)
+                    .tag(pane)
+                    .padding(.vertical, 4)
+            }
+            .listStyle(.sidebar)
+            .frame(width: 180)
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 0) {
+                content
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+
+                Divider()
+
+                actionsSection
+                    .padding(.top, 16)
+            }
+            .padding(24)
         }
-        .padding()
-        .frame(width: 620)
+        .frame(width: 820, height: 520)
         .onChange(of: baseURL) { _ in saved = false }
         .onChange(of: model) { _ in saved = false }
         .onChange(of: targetLanguage) { _ in saved = false }
@@ -60,16 +83,73 @@ struct SettingsView: View {
         .onChange(of: screenshotPopoverOpacity) { _ in saved = false }
     }
 
-    private var translationSection: some View {
-        Section("Translation") {
-            Picker("Target Language", selection: $targetLanguage) {
-                ForEach(SupportedLanguage.unitedNations) { language in
-                    Text(language.displayName).tag(language.name)
+    @ViewBuilder
+    private var content: some View {
+        switch selectedPane {
+        case .translation:
+            page("Translation") {
+                formRow("Target Language") {
+                    Picker("", selection: $targetLanguage) {
+                        ForEach(SupportedLanguage.unitedNations) { language in
+                            Text(language.displayName).tag(language.name)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(width: 220)
+                }
+
+                formRow("Free Provider") {
+                    Picker("", selection: $freeTranslationProvider) {
+                        ForEach(FreeTranslationProvider.allCases) { provider in
+                            Text(provider.displayName).tag(provider)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(width: 220)
+                }
+
+                credentialsSection
+            }
+        case .popover:
+            page("Popover") {
+                formRow("Screenshot opacity") {
+                    HStack(spacing: 10) {
+                        TextField("Opacity", value: $screenshotPopoverOpacity, format: .number.precision(.fractionLength(1)))
+                            .frame(width: 72)
+                            .onSubmit { screenshotPopoverOpacity = clampedOpacity(screenshotPopoverOpacity) }
+                        Stepper("", value: $screenshotPopoverOpacity, in: 0.1...1.0, step: 0.1)
+                            .labelsHidden()
+                        Text("0.1-1.0")
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
-            Picker("Free Provider", selection: $freeTranslationProvider) {
-                ForEach(FreeTranslationProvider.allCases) { provider in
-                    Text(provider.displayName).tag(provider)
+        case .api:
+            page("API") {
+                formRow("Use API fallback") {
+                    Toggle("", isOn: $useAPIFallback)
+                        .labelsHidden()
+                }
+                formRow("Base URL") {
+                    TextField("Base URL", text: $baseURL)
+                        .textFieldStyle(.roundedBorder)
+                }
+                formRow("API Key") {
+                    SecureField("API Key", text: $apiKey)
+                        .textFieldStyle(.roundedBorder)
+                }
+                formRow("Model") {
+                    TextField("Model", text: $model)
+                        .textFieldStyle(.roundedBorder)
+                }
+                HStack(spacing: 12) {
+                    Spacer()
+                        .frame(width: 150)
+                    Button(testingAPI ? "Testing..." : "Test API") { testAPI() }
+                        .disabled(testingAPI)
+                    Text(apiStatus)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
                 }
             }
         }
@@ -77,52 +157,57 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var credentialsSection: some View {
-        if freeTranslationProvider == .youdao {
-            Section("Provider Credentials") {
-                TextField("Youdao App ID", text: $youdaoAppID)
-                SecureField("Youdao Secret", text: $youdaoSecret)
-            }
-        }
-
         if freeTranslationProvider == .baidu {
-            Section("Provider Credentials") {
+            Divider()
+                .padding(.vertical, 8)
+            Text("Provider Credentials")
+                .font(.headline)
+            formRow("Baidu App ID") {
                 TextField("Baidu App ID", text: $baiduAppID)
+                    .textFieldStyle(.roundedBorder)
+            }
+            formRow("Baidu Secret") {
                 SecureField("Baidu Secret", text: $baiduSecret)
+                    .textFieldStyle(.roundedBorder)
+            }
+        } else if freeTranslationProvider == .youdao {
+            Divider()
+                .padding(.vertical, 8)
+            Text("Provider Credentials")
+                .font(.headline)
+            formRow("Youdao App ID") {
+                TextField("Youdao App ID", text: $youdaoAppID)
+                    .textFieldStyle(.roundedBorder)
+            }
+            formRow("Youdao Secret") {
+                SecureField("Youdao Secret", text: $youdaoSecret)
+                    .textFieldStyle(.roundedBorder)
             }
         }
     }
 
-    private var popoverSection: some View {
-        Section("Popover") {
-            Stepper(value: $screenshotPopoverOpacity, in: 0.1...1.0, step: 0.1) {
-                HStack {
-                    Text("Screenshot opacity")
-                    TextField("Opacity", value: $screenshotPopoverOpacity, format: .number.precision(.fractionLength(1)))
-                        .frame(width: 72)
-                        .onSubmit { screenshotPopoverOpacity = clampedOpacity(screenshotPopoverOpacity) }
-                    Text("0.1-1.0")
-                        .foregroundStyle(.secondary)
-                }
-            }
+    private func page<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(title)
+                .font(.title2.bold())
+                .padding(.bottom, 8)
+            content()
         }
     }
 
-    private var apiFallbackSection: some View {
-        Section("API Fallback") {
-            Toggle("Use API fallback", isOn: $useAPIFallback)
-            TextField("Base URL", text: $baseURL)
-            SecureField("API Key", text: $apiKey)
-            TextField("Model", text: $model)
-            HStack {
-                Button(testingAPI ? "Testing..." : "Test API") { testAPI() }
-                    .disabled(testingAPI)
-                Text(apiStatus)
-            }
+    private func formRow<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        HStack(alignment: .center, spacing: 16) {
+            Text(title)
+                .frame(width: 150, alignment: .trailing)
+                .foregroundStyle(.secondary)
+            content()
+                .frame(maxWidth: 420, alignment: .leading)
         }
     }
 
     private var actionsSection: some View {
         HStack {
+            Spacer()
             Button(saved ? "Saved" : "Save") { save() }
             Button("Restore Defaults") { restoreDefaults() }
         }
