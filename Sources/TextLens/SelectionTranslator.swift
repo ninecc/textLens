@@ -3,13 +3,11 @@ import TextLensCore
 
 final class SelectionTranslator {
     private let settings: SettingsStore
-    private let keychain: KeychainStore
     private let translation: TranslationService
     private let popover: ResultPopover
 
-    init(settings: SettingsStore, keychain: KeychainStore, translation: TranslationService, popover: ResultPopover) {
+    init(settings: SettingsStore, translation: TranslationService, popover: ResultPopover) {
         self.settings = settings
-        self.keychain = keychain
         self.translation = translation
         self.popover = popover
     }
@@ -90,7 +88,7 @@ final class SelectionTranslator {
             popover.show(original: "", translated: "No text to translate.")
             return
         }
-        guard !keychain.apiKey.isEmpty else {
+        guard !settings.apiKey.isEmpty else {
             popover.show(original: text, translated: "Missing API key. Open Settings.")
             return
         }
@@ -100,7 +98,7 @@ final class SelectionTranslator {
                 let translated = try await translation.translate(
                     text: text,
                     targetLanguage: settings.targetLanguage,
-                    config: .init(baseURL: settings.baseURL, apiKey: keychain.apiKey, model: settings.model)
+                    config: .init(baseURL: settings.baseURL, apiKey: settings.apiKey, model: settings.model)
                 )
                 await MainActor.run {
                     popover.show(original: text, translated: translated)

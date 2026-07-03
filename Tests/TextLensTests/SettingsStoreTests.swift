@@ -9,6 +9,7 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(store.baseURL, URL(string: "https://api.openai.com/v1/chat/completions")!)
         XCTAssertEqual(store.model, "gpt-4o-mini")
         XCTAssertEqual(store.targetLanguage, "Chinese")
+        XCTAssertEqual(store.apiKey, "")
     }
 
     func testReadWrite() {
@@ -18,9 +19,28 @@ final class SettingsStoreTests: XCTestCase {
         store.baseURL = URL(string: "https://example.com/v1/chat/completions")!
         store.model = "test-model"
         store.targetLanguage = "Japanese"
+        store.apiKey = "test-key"
 
         XCTAssertEqual(store.baseURL.absoluteString, "https://example.com/v1/chat/completions")
         XCTAssertEqual(store.model, "test-model")
         XCTAssertEqual(store.targetLanguage, "Japanese")
+        XCTAssertEqual(store.apiKey, "test-key")
+    }
+
+    func testResetToDefaults() {
+        let defaults = UserDefaults(suiteName: UUID().uuidString)!
+        let store = SettingsStore(defaults: defaults)
+
+        store.baseURL = URL(string: "https://example.com/v1/chat/completions")!
+        store.model = "test-model"
+        store.targetLanguage = "Japanese"
+        store.apiKey = "test-key"
+
+        store.resetToDefaults()
+
+        XCTAssertEqual(store.baseURL, URL(string: "https://api.openai.com/v1/chat/completions")!)
+        XCTAssertEqual(store.model, "gpt-4o-mini")
+        XCTAssertEqual(store.targetLanguage, "Chinese")
+        XCTAssertEqual(store.apiKey, "")
     }
 }

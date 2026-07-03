@@ -3,15 +3,13 @@ import TextLensCore
 
 final class ScreenCaptureTranslator {
     private let settings: SettingsStore
-    private let keychain: KeychainStore
     private let ocr: OCRService
     private let translation: TranslationService
     private let popover: ResultPopover
     private var selectionWindow: RegionSelectionWindow?
 
-    init(settings: SettingsStore, keychain: KeychainStore, ocr: OCRService, translation: TranslationService, popover: ResultPopover) {
+    init(settings: SettingsStore, ocr: OCRService, translation: TranslationService, popover: ResultPopover) {
         self.settings = settings
-        self.keychain = keychain
         self.ocr = ocr
         self.translation = translation
         self.popover = popover
@@ -43,7 +41,7 @@ final class ScreenCaptureTranslator {
     }
 
     private func translate(region: CGRect, on screen: NSScreen) {
-        guard !keychain.apiKey.isEmpty else {
+        guard !settings.apiKey.isEmpty else {
             popover.show(original: "", translated: "Missing API key. Open Settings.")
             return
         }
@@ -64,7 +62,7 @@ final class ScreenCaptureTranslator {
                 let translated = try await translation.translate(
                     text: text,
                     targetLanguage: settings.targetLanguage,
-                    config: .init(baseURL: settings.baseURL, apiKey: keychain.apiKey, model: settings.model)
+                    config: .init(baseURL: settings.baseURL, apiKey: settings.apiKey, model: settings.model)
                 )
                 await MainActor.run {
                     popover.show(original: text, translated: translated)

@@ -5,6 +5,7 @@ public final class SettingsStore {
         static let baseURL = "baseURL"
         static let model = "model"
         static let targetLanguage = "targetLanguage"
+        static let apiKey = "apiKey"
     }
 
     private let defaults: UserDefaults
@@ -31,5 +32,17 @@ public final class SettingsStore {
     public var targetLanguage: String {
         get { defaults.string(forKey: Key.targetLanguage) ?? "Chinese" }
         set { defaults.set(newValue, forKey: Key.targetLanguage) }
+    }
+
+    public var apiKey: String {
+        get { defaults.string(forKey: Key.apiKey) ?? "" }
+        set { defaults.set(newValue, forKey: Key.apiKey) }
+    }
+
+    public func resetToDefaults() {
+        defaults.removeObject(forKey: Key.baseURL)
+        defaults.removeObject(forKey: Key.model)
+        defaults.removeObject(forKey: Key.targetLanguage)
+        defaults.removeObject(forKey: Key.apiKey)
     }
 }

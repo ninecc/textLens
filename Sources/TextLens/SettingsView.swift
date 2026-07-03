@@ -9,17 +9,15 @@ struct SettingsView: View {
     @State private var saved = false
 
     private let settings: SettingsStore
-    private let keychain: KeychainStore
     private let saveModel: SettingsSaveModel
 
-    init(settings: SettingsStore, keychain: KeychainStore) {
+    init(settings: SettingsStore) {
         self.settings = settings
-        self.keychain = keychain
         saveModel = SettingsSaveModel(settings: settings)
         _baseURL = State(initialValue: settings.baseURL.absoluteString)
         _model = State(initialValue: settings.model)
         _targetLanguage = State(initialValue: settings.targetLanguage)
-        _apiKey = State(initialValue: keychain.apiKey)
+        _apiKey = State(initialValue: settings.apiKey)
     }
 
     var body: some View {
@@ -29,6 +27,7 @@ struct SettingsView: View {
             TextField("Model", text: $model)
             TextField("Target Language", text: $targetLanguage)
             Button(saved ? "Saved" : "Save") { save() }
+            Button("Restore Defaults") { restoreDefaults() }
         }
         .padding()
         .frame(width: 460)
@@ -39,10 +38,17 @@ struct SettingsView: View {
     }
 
     private func save() {
-        let keychain = keychain
         saved = saveModel.save(
-            SettingsDraft(baseURL: baseURL, model: model, targetLanguage: targetLanguage, apiKey: apiKey),
-            saveAPIKey: { keychain.apiKey = $0 }
+            SettingsDraft(baseURL: baseURL, model: model, targetLanguage: targetLanguage, apiKey: apiKey)
         )
+    }
+
+    private func restoreDefaults() {
+        settings.resetToDefaults()
+        baseURL = settings.baseURL.absoluteString
+        model = settings.model
+        targetLanguage = settings.targetLanguage
+        apiKey = settings.apiKey
+        saved = false
     }
 }

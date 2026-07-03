@@ -22,17 +22,13 @@ public final class SettingsSaveModel {
     }
 
     @discardableResult
-    public func save(_ draft: SettingsDraft, saveAPIKey: @escaping @Sendable (String) -> Void) -> Bool {
+    public func save(_ draft: SettingsDraft) -> Bool {
         if let url = URL(string: draft.baseURL) {
             settings.baseURL = url
         }
         settings.model = draft.model
         settings.targetLanguage = draft.targetLanguage
-
-        let apiKey = draft.apiKey
-        Task.detached {
-            saveAPIKey(apiKey)
-        }
+        settings.apiKey = draft.apiKey
         return true
     }
 }

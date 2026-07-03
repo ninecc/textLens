@@ -6,20 +6,17 @@ final class AppShell: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var settingsWindow: NSWindow?
     private let settings = SettingsStore()
-    private let keychain = KeychainStore()
     private let translation = TranslationService()
     private let ocr = OCRService()
     private let popover = ResultPopover()
     private let hotKeyCenter = HotKeyCenter()
     private lazy var selectionTranslator = SelectionTranslator(
         settings: settings,
-        keychain: keychain,
         translation: translation,
         popover: popover
     )
     private lazy var screenCaptureTranslator = ScreenCaptureTranslator(
         settings: settings,
-        keychain: keychain,
         ocr: ocr,
         translation: translation,
         popover: popover
@@ -68,7 +65,7 @@ final class AppShell: NSObject, NSApplicationDelegate {
             return
         }
 
-        let view = SettingsView(settings: settings, keychain: keychain)
+        let view = SettingsView(settings: settings)
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 460, height: 260), styleMask: [.titled, .closable], backing: .buffered, defer: false)
         window.title = "TextLens Settings"
         window.isReleasedWhenClosed = false
