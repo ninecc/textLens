@@ -6,6 +6,7 @@ struct SettingsView: View {
     @State private var model: String
     @State private var targetLanguage: String
     @State private var apiKey: String
+    @State private var saved = false
 
     private let settings: SettingsStore
     private let keychain: KeychainStore
@@ -27,15 +28,19 @@ struct SettingsView: View {
             SecureField("API Key", text: $apiKey)
             TextField("Model", text: $model)
             TextField("Target Language", text: $targetLanguage)
-            Button("Save") { save() }
+            Button(saved ? "Saved" : "Save") { save() }
         }
         .padding()
         .frame(width: 460)
+        .onChange(of: baseURL) { _ in saved = false }
+        .onChange(of: model) { _ in saved = false }
+        .onChange(of: targetLanguage) { _ in saved = false }
+        .onChange(of: apiKey) { _ in saved = false }
     }
 
     private func save() {
         let keychain = keychain
-        saveModel.save(
+        saved = saveModel.save(
             SettingsDraft(baseURL: baseURL, model: model, targetLanguage: targetLanguage, apiKey: apiKey),
             saveAPIKey: { keychain.apiKey = $0 }
         )

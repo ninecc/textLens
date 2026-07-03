@@ -62,11 +62,21 @@ final class AppShell: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openSettings() {
+        if let settingsWindow {
+            NSApp.activate(ignoringOtherApps: true)
+            settingsWindow.makeKeyAndOrderFront(nil)
+            return
+        }
+
         let view = SettingsView(settings: settings, keychain: keychain)
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 460, height: 260), styleMask: [.titled, .closable], backing: .buffered, defer: false)
         window.title = "TextLens Settings"
+        window.isReleasedWhenClosed = false
+        window.level = .floating
+        window.collectionBehavior = [.moveToActiveSpace]
         window.contentView = NSHostingView(rootView: view)
         window.center()
+        NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
         settingsWindow = window
     }

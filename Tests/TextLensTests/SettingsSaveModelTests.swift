@@ -10,7 +10,7 @@ final class SettingsSaveModelTests: XCTestCase {
         let release = DispatchSemaphore(value: 0)
 
         let start = Date()
-        model.save(
+        let result = model.save(
             SettingsDraft(
                 baseURL: "https://example.com/v1/chat/completions",
                 model: "model",
@@ -24,6 +24,7 @@ final class SettingsSaveModelTests: XCTestCase {
         )
 
         XCTAssertLessThan(Date().timeIntervalSince(start), 0.2)
+        XCTAssertTrue(result)
         XCTAssertEqual(started.wait(timeout: .now() + 1), .success)
         XCTAssertEqual(store.baseURL.absoluteString, "https://example.com/v1/chat/completions")
         XCTAssertEqual(store.model, "model")

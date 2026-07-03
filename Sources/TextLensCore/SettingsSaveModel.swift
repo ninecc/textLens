@@ -21,7 +21,8 @@ public final class SettingsSaveModel {
         self.settings = settings
     }
 
-    public func save(_ draft: SettingsDraft, saveAPIKey: @escaping @Sendable (String) -> Void) {
+    @discardableResult
+    public func save(_ draft: SettingsDraft, saveAPIKey: @escaping @Sendable (String) -> Void) -> Bool {
         if let url = URL(string: draft.baseURL) {
             settings.baseURL = url
         }
@@ -32,5 +33,6 @@ public final class SettingsSaveModel {
         Task.detached {
             saveAPIKey(apiKey)
         }
+        return true
     }
 }
