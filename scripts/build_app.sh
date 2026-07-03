@@ -36,5 +36,5 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 </plist>
 PLIST
 
-codesign --force --sign - "$APP"
+codesign --force --sign - --requirements '=designated => identifier "com.textlens.app"' "$APP"
 echo "$APP"

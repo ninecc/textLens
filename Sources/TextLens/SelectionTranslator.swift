@@ -3,12 +3,12 @@ import TextLensCore
 
 final class SelectionTranslator {
     private let settings: SettingsStore
-    private let translation: TranslationService
+    private let translation: TranslationRunner
     private let popover: ResultPopover
 
     init(settings: SettingsStore, translation: TranslationService, popover: ResultPopover) {
         self.settings = settings
-        self.translation = translation
+        self.translation = TranslationRunner(settings: settings, api: translation)
         self.popover = popover
     }
 
@@ -88,18 +88,9 @@ final class SelectionTranslator {
             popover.show(original: "", translated: "No text to translate.")
             return
         }
-        guard !settings.apiKey.isEmpty else {
-            popover.show(original: text, translated: "Missing API key. Open Settings.")
-            return
-        }
-
         Task {
             do {
-                let translated = try await translation.translate(
-                    text: text,
-                    targetLanguage: settings.targetLanguage,
-                    config: .init(baseURL: settings.baseURL, apiKey: settings.apiKey, model: settings.model)
-                )
+                let translated = try await translation.translate(text)
                 await MainActor.run {
                     popover.show(original: text, translated: translated)
                 }

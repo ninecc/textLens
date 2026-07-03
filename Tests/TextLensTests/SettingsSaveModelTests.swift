@@ -11,15 +11,17 @@ final class SettingsSaveModelTests: XCTestCase {
             SettingsDraft(
                 baseURL: "https://example.com/v1/chat/completions",
                 model: "model",
-                targetLanguage: "Japanese",
-                apiKey: "key"
+                targetLanguage: "French",
+                apiKey: "key",
+                useAPIFallback: false
             )
         )
 
         XCTAssertTrue(result)
         XCTAssertEqual(store.baseURL.absoluteString, "https://example.com/v1/chat/completions")
         XCTAssertEqual(store.model, "model")
-        XCTAssertEqual(store.targetLanguage, "Japanese")
+        XCTAssertEqual(store.targetLanguage, "French")
         XCTAssertEqual(store.apiKey, "key")
+        XCTAssertFalse(store.useAPIFallback)
     }
 }

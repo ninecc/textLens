@@ -40,6 +40,7 @@ func testSettingsDefaults() {
     check(store.baseURL == URL(string: "https://api.openai.com/v1/chat/completions")!, "default base URL")
     check(store.model == "gpt-4o-mini", "default model")
     check(store.targetLanguage == "Chinese", "default target language")
+    check(!store.useAPIFallback, "default API fallback")
 }
 
 func testSettingsReadWrite() {
@@ -48,11 +49,13 @@ func testSettingsReadWrite() {
 
     store.baseURL = URL(string: "https://example.com/v1/chat/completions")!
     store.model = "test-model"
-    store.targetLanguage = "Japanese"
+    store.targetLanguage = "Russian"
+    store.useAPIFallback = true
 
     check(store.baseURL.absoluteString == "https://example.com/v1/chat/completions", "stored base URL")
     check(store.model == "test-model", "stored model")
-    check(store.targetLanguage == "Japanese", "stored target language")
+    check(store.targetLanguage == "Russian", "stored target language")
+    check(store.useAPIFallback, "stored API fallback")
 }
 
 func makeSession() -> URLSession {

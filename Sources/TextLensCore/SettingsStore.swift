@@ -6,6 +6,7 @@ public final class SettingsStore {
         static let model = "model"
         static let targetLanguage = "targetLanguage"
         static let apiKey = "apiKey"
+        static let useAPIFallback = "useAPIFallback"
     }
 
     private let defaults: UserDefaults
@@ -31,7 +32,7 @@ public final class SettingsStore {
 
     public var targetLanguage: String {
         get { defaults.string(forKey: Key.targetLanguage) ?? "Chinese" }
-        set { defaults.set(newValue, forKey: Key.targetLanguage) }
+        set { defaults.set(SupportedLanguage.normalized(newValue).name, forKey: Key.targetLanguage) }
     }
 
     public var apiKey: String {
@@ -39,10 +40,18 @@ public final class SettingsStore {
         set { defaults.set(newValue, forKey: Key.apiKey) }
     }
 
+    public var useAPIFallback: Bool {
+        get {
+            defaults.object(forKey: Key.useAPIFallback) as? Bool ?? false
+        }
+        set { defaults.set(newValue, forKey: Key.useAPIFallback) }
+    }
+
     public func resetToDefaults() {
         defaults.removeObject(forKey: Key.baseURL)
         defaults.removeObject(forKey: Key.model)
         defaults.removeObject(forKey: Key.targetLanguage)
         defaults.removeObject(forKey: Key.apiKey)
+        defaults.removeObject(forKey: Key.useAPIFallback)
     }
 }
