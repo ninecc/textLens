@@ -9,4 +9,13 @@ public enum ScreenshotRegion {
             height: region.height
         )
     }
+
+    public static func displayCaptureRect(region: CGRect, screenSize: CGSize, scale: CGFloat) -> CGRect {
+        CGRect(
+            x: region.minX * scale,
+            y: (screenSize.height - region.maxY) * scale,
+            width: region.width * scale,
+            height: region.height * scale
+        )
+    }
 }

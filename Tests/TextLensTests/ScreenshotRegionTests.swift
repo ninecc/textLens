@@ -20,4 +20,14 @@ final class ScreenshotRegionTests: XCTestCase {
 
         XCTAssertEqual(rect, CGRect(x: 110, y: 520, width: 80, height: 30))
     }
+
+    func testDisplayCaptureRectUsesDisplayPixels() {
+        let rect = ScreenshotRegion.displayCaptureRect(
+            region: CGRect(x: 40, y: 600, width: 200, height: 100),
+            screenSize: CGSize(width: 1000, height: 800),
+            scale: 2
+        )
+
+        XCTAssertEqual(rect, CGRect(x: 80, y: 200, width: 400, height: 200))
+    }
 }
