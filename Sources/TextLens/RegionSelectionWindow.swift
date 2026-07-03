@@ -2,15 +2,18 @@ import AppKit
 
 final class RegionSelectionWindow: NSWindow {
     init(screen: NSScreen, onSelect: @escaping (CGRect?) -> Void) {
-        let view = RegionSelectionView(frame: screen.frame, onSelect: onSelect)
+        let view = RegionSelectionView(frame: CGRect(origin: .zero, size: screen.frame.size), onSelect: onSelect)
         super.init(contentRect: screen.frame, styleMask: [.borderless], backing: .buffered, defer: false)
         level = .screenSaver
         backgroundColor = .clear
         isOpaque = false
+        isReleasedWhenClosed = false
         ignoresMouseEvents = false
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         contentView = view
     }
+
+    override var canBecomeKey: Bool { true }
 }
 
 private final class RegionSelectionView: NSView {
