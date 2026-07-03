@@ -11,6 +11,7 @@ public struct SettingsDraft {
     public let baiduSecret: String
     public let apiKey: String
     public let useAPIFallback: Bool
+    public let screenshotPopoverOpacity: Double
 
     public init(
         baseURL: String,
@@ -22,7 +23,8 @@ public struct SettingsDraft {
         baiduAppID: String,
         baiduSecret: String,
         apiKey: String,
-        useAPIFallback: Bool
+        useAPIFallback: Bool,
+        screenshotPopoverOpacity: Double
     ) {
         self.baseURL = baseURL
         self.model = model
@@ -34,6 +36,7 @@ public struct SettingsDraft {
         self.baiduSecret = baiduSecret
         self.apiKey = apiKey
         self.useAPIFallback = useAPIFallback
+        self.screenshotPopoverOpacity = screenshotPopoverOpacity
     }
 }
 
@@ -58,6 +61,7 @@ public final class SettingsSaveModel {
         settings.baiduSecret = draft.baiduSecret
         settings.apiKey = draft.apiKey
         settings.useAPIFallback = draft.useAPIFallback
+        settings.screenshotPopoverOpacity = draft.screenshotPopoverOpacity
         return true
     }
 }

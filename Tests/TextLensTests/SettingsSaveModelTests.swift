@@ -18,7 +18,8 @@ final class SettingsSaveModelTests: XCTestCase {
                 baiduAppID: "baidu-app",
                 baiduSecret: "baidu-secret",
                 apiKey: "key",
-                useAPIFallback: false
+                useAPIFallback: false,
+                screenshotPopoverOpacity: 0.4
             )
         )
 
@@ -33,5 +34,6 @@ final class SettingsSaveModelTests: XCTestCase {
         XCTAssertEqual(store.baiduSecret, "baidu-secret")
         XCTAssertEqual(store.apiKey, "key")
         XCTAssertFalse(store.useAPIFallback)
+        XCTAssertEqual(store.screenshotPopoverOpacity, 0.4)
     }
 }

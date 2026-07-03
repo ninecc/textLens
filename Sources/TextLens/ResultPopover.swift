@@ -5,13 +5,13 @@ final class ResultPopover: NSObject {
     private var window: NSWindow?
     private var translatedText = ""
 
-    func show(original: String, translated: String, anchor: CGRect? = nil) {
+    func show(original: String, translated: String, anchor: CGRect? = nil, backgroundOpacity: Double = 0.9) {
         DispatchQueue.main.async { [weak self] in
-            self?.present(original: original, translated: translated, anchor: anchor)
+            self?.present(original: original, translated: translated, anchor: anchor, backgroundOpacity: backgroundOpacity)
         }
     }
 
-    private func present(original: String, translated: String, anchor: CGRect?) {
+    private func present(original: String, translated: String, anchor: CGRect?, backgroundOpacity: Double) {
         window?.close()
         window = nil
         translatedText = translated
@@ -47,7 +47,7 @@ final class ResultPopover: NSObject {
         window.hasShadow = true
         window.isOpaque = false
         window.isMovableByWindowBackground = true
-        window.backgroundColor = NSColor.windowBackgroundColor.withAlphaComponent(0.9)
+        window.backgroundColor = NSColor.windowBackgroundColor.withAlphaComponent(min(max(backgroundOpacity, 0.1), 1.0))
         window.contentView = content
         window.orderFrontRegardless()
         self.window = window

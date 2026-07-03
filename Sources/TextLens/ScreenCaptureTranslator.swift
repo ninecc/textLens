@@ -7,6 +7,7 @@ final class ScreenCaptureTranslator {
     private let translation: TranslationRunner
     private let popover: ResultPopover
     private var selectionWindow: RegionSelectionWindow?
+    private var popoverOpacity: Double { settings.screenshotPopoverOpacity }
 
     init(settings: SettingsStore, ocr: OCRService, translation: TranslationService, popover: ResultPopover) {
         self.settings = settings
@@ -18,12 +19,12 @@ final class ScreenCaptureTranslator {
     func start() {
         guard CGPreflightScreenCaptureAccess() else {
             CGRequestScreenCaptureAccess()
-            popover.show(original: "", translated: "Screen Recording permission is required.")
+            popover.show(original: "", translated: "Screen Recording permission is required.", backgroundOpacity: popoverOpacity)
             return
         }
 
         guard let screen = NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) }) else {
-            popover.show(original: "", translated: "Could not find the current screen.")
+            popover.show(original: "", translated: "Could not find the current screen.", backgroundOpacity: popoverOpacity)
             return
         }
 
@@ -44,7 +45,7 @@ final class ScreenCaptureTranslator {
     private func translate(region: CGRect, on screen: NSScreen) {
         let anchor = globalRect(region: region, on: screen)
         guard let image = capture(region: region, on: screen) else {
-            popover.show(original: "", translated: "Could not capture the selected region.", anchor: anchor)
+            popover.show(original: "", translated: "Could not capture the selected region.", anchor: anchor, backgroundOpacity: popoverOpacity)
             return
         }
 
@@ -53,17 +54,17 @@ final class ScreenCaptureTranslator {
                 let text = try await ocr.recognizeText(in: image)
                 guard !text.isEmpty else {
                     await MainActor.run {
-                        popover.show(original: "", translated: "No text recognized.", anchor: anchor)
+                        popover.show(original: "", translated: "No text recognized.", anchor: anchor, backgroundOpacity: popoverOpacity)
                     }
                     return
                 }
                 let translated = try await translation.translate(text)
                 await MainActor.run {
-                    popover.show(original: text, translated: translated, anchor: anchor)
+                    popover.show(original: text, translated: translated, anchor: anchor, backgroundOpacity: popoverOpacity)
                 }
             } catch {
                 await MainActor.run {
-                    popover.show(original: "", translated: error.localizedDescription, anchor: anchor)
+                    popover.show(original: "", translated: error.localizedDescription, anchor: anchor, backgroundOpacity: popoverOpacity)
                 }
             }
         }

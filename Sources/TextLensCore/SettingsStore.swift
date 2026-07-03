@@ -12,6 +12,7 @@ public final class SettingsStore {
         static let baiduSecret = "baiduSecret"
         static let apiKey = "apiKey"
         static let useAPIFallback = "useAPIFallback"
+        static let screenshotPopoverOpacity = "screenshotPopoverOpacity"
     }
 
     private let defaults: UserDefaults
@@ -77,6 +78,15 @@ public final class SettingsStore {
         set { defaults.set(newValue, forKey: Key.useAPIFallback) }
     }
 
+    public var screenshotPopoverOpacity: Double {
+        get {
+            defaults.object(forKey: Key.screenshotPopoverOpacity) as? Double ?? 0.9
+        }
+        set {
+            defaults.set(min(max(newValue, 0.1), 1.0), forKey: Key.screenshotPopoverOpacity)
+        }
+    }
+
     public func resetToDefaults() {
         defaults.removeObject(forKey: Key.baseURL)
         defaults.removeObject(forKey: Key.model)
@@ -88,5 +98,6 @@ public final class SettingsStore {
         defaults.removeObject(forKey: Key.baiduSecret)
         defaults.removeObject(forKey: Key.apiKey)
         defaults.removeObject(forKey: Key.useAPIFallback)
+        defaults.removeObject(forKey: Key.screenshotPopoverOpacity)
     }
 }

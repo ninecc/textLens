@@ -12,6 +12,7 @@ struct SettingsView: View {
     @State private var baiduSecret: String
     @State private var apiKey: String
     @State private var useAPIFallback: Bool
+    @State private var screenshotPopoverOpacity: Double
     @State private var saved = false
     @State private var apiStatus = ""
     @State private var testingAPI = false
@@ -33,56 +34,19 @@ struct SettingsView: View {
         _baiduSecret = State(initialValue: settings.baiduSecret)
         _apiKey = State(initialValue: settings.apiKey)
         _useAPIFallback = State(initialValue: settings.useAPIFallback)
+        _screenshotPopoverOpacity = State(initialValue: settings.screenshotPopoverOpacity)
     }
 
     var body: some View {
         Form {
-            Section("Translation") {
-                Picker("Target Language", selection: $targetLanguage) {
-                    ForEach(SupportedLanguage.unitedNations) { language in
-                        Text(language.displayName).tag(language.name)
-                    }
-                }
-                Picker("Free Provider", selection: $freeTranslationProvider) {
-                    ForEach(FreeTranslationProvider.allCases) { provider in
-                        Text(provider.displayName).tag(provider)
-                    }
-                }
-            }
-
-            if freeTranslationProvider == .youdao {
-                Section("Youdao") {
-                    TextField("App ID", text: $youdaoAppID)
-                    SecureField("Secret", text: $youdaoSecret)
-                }
-            }
-
-            if freeTranslationProvider == .baidu {
-                Section("Baidu") {
-                    TextField("App ID", text: $baiduAppID)
-                    SecureField("Secret", text: $baiduSecret)
-                }
-            }
-
-            Section("API Fallback") {
-                Toggle("Use API fallback", isOn: $useAPIFallback)
-                TextField("Base URL", text: $baseURL)
-                SecureField("API Key", text: $apiKey)
-                TextField("Model", text: $model)
-                HStack {
-                    Button(testingAPI ? "Testing..." : "Test API") { testAPI() }
-                        .disabled(testingAPI)
-                    Text(apiStatus)
-                }
-            }
-
-            HStack {
-                Button(saved ? "Saved" : "Save") { save() }
-                Button("Restore Defaults") { restoreDefaults() }
-            }
+            translationSection
+            credentialsSection
+            popoverSection
+            apiFallbackSection
+            actionsSection
         }
         .padding()
-        .frame(width: 560)
+        .frame(width: 620)
         .onChange(of: baseURL) { _ in saved = false }
         .onChange(of: model) { _ in saved = false }
         .onChange(of: targetLanguage) { _ in saved = false }
@@ -93,6 +57,75 @@ struct SettingsView: View {
         .onChange(of: baiduSecret) { _ in saved = false }
         .onChange(of: apiKey) { _ in saved = false }
         .onChange(of: useAPIFallback) { _ in saved = false }
+        .onChange(of: screenshotPopoverOpacity) { _ in saved = false }
+    }
+
+    private var translationSection: some View {
+        Section("Translation") {
+            Picker("Target Language", selection: $targetLanguage) {
+                ForEach(SupportedLanguage.unitedNations) { language in
+                    Text(language.displayName).tag(language.name)
+                }
+            }
+            Picker("Free Provider", selection: $freeTranslationProvider) {
+                ForEach(FreeTranslationProvider.allCases) { provider in
+                    Text(provider.displayName).tag(provider)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var credentialsSection: some View {
+        if freeTranslationProvider == .youdao {
+            Section("Provider Credentials") {
+                TextField("Youdao App ID", text: $youdaoAppID)
+                SecureField("Youdao Secret", text: $youdaoSecret)
+            }
+        }
+
+        if freeTranslationProvider == .baidu {
+            Section("Provider Credentials") {
+                TextField("Baidu App ID", text: $baiduAppID)
+                SecureField("Baidu Secret", text: $baiduSecret)
+            }
+        }
+    }
+
+    private var popoverSection: some View {
+        Section("Popover") {
+            Stepper(value: $screenshotPopoverOpacity, in: 0.1...1.0, step: 0.1) {
+                HStack {
+                    Text("Screenshot opacity")
+                    TextField("Opacity", value: $screenshotPopoverOpacity, format: .number.precision(.fractionLength(1)))
+                        .frame(width: 72)
+                        .onSubmit { screenshotPopoverOpacity = clampedOpacity(screenshotPopoverOpacity) }
+                    Text("0.1-1.0")
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    private var apiFallbackSection: some View {
+        Section("API Fallback") {
+            Toggle("Use API fallback", isOn: $useAPIFallback)
+            TextField("Base URL", text: $baseURL)
+            SecureField("API Key", text: $apiKey)
+            TextField("Model", text: $model)
+            HStack {
+                Button(testingAPI ? "Testing..." : "Test API") { testAPI() }
+                    .disabled(testingAPI)
+                Text(apiStatus)
+            }
+        }
+    }
+
+    private var actionsSection: some View {
+        HStack {
+            Button(saved ? "Saved" : "Save") { save() }
+            Button("Restore Defaults") { restoreDefaults() }
+        }
     }
 
     private func save() {
@@ -107,7 +140,8 @@ struct SettingsView: View {
                 baiduAppID: baiduAppID,
                 baiduSecret: baiduSecret,
                 apiKey: apiKey,
-                useAPIFallback: useAPIFallback
+                useAPIFallback: useAPIFallback,
+                screenshotPopoverOpacity: screenshotPopoverOpacity
             )
         )
     }
@@ -142,7 +176,12 @@ struct SettingsView: View {
         baiduSecret = settings.baiduSecret
         apiKey = settings.apiKey
         useAPIFallback = settings.useAPIFallback
+        screenshotPopoverOpacity = settings.screenshotPopoverOpacity
         apiStatus = ""
         saved = false
+    }
+
+    private func clampedOpacity(_ value: Double) -> Double {
+        min(max((value * 10).rounded() / 10, 0.1), 1.0)
     }
 }
