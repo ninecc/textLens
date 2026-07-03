@@ -5,6 +5,11 @@ struct SettingsView: View {
     @State private var baseURL: String
     @State private var model: String
     @State private var targetLanguage: String
+    @State private var freeTranslationProvider: FreeTranslationProvider
+    @State private var youdaoAppID: String
+    @State private var youdaoSecret: String
+    @State private var baiduAppID: String
+    @State private var baiduSecret: String
     @State private var apiKey: String
     @State private var useAPIFallback: Bool
     @State private var saved = false
@@ -21,41 +26,89 @@ struct SettingsView: View {
         _baseURL = State(initialValue: settings.baseURL.absoluteString)
         _model = State(initialValue: settings.model)
         _targetLanguage = State(initialValue: settings.targetLanguage)
+        _freeTranslationProvider = State(initialValue: settings.freeTranslationProvider)
+        _youdaoAppID = State(initialValue: settings.youdaoAppID)
+        _youdaoSecret = State(initialValue: settings.youdaoSecret)
+        _baiduAppID = State(initialValue: settings.baiduAppID)
+        _baiduSecret = State(initialValue: settings.baiduSecret)
         _apiKey = State(initialValue: settings.apiKey)
         _useAPIFallback = State(initialValue: settings.useAPIFallback)
     }
 
     var body: some View {
         Form {
-            Picker("Target Language", selection: $targetLanguage) {
-                ForEach(SupportedLanguage.unitedNations) { language in
-                    Text(language.displayName).tag(language.name)
+            Section("Translation") {
+                Picker("Target Language", selection: $targetLanguage) {
+                    ForEach(SupportedLanguage.unitedNations) { language in
+                        Text(language.displayName).tag(language.name)
+                    }
+                }
+                Picker("Free Provider", selection: $freeTranslationProvider) {
+                    ForEach(FreeTranslationProvider.allCases) { provider in
+                        Text(provider.displayName).tag(provider)
+                    }
                 }
             }
-            TextField("Base URL", text: $baseURL)
-            SecureField("API Key", text: $apiKey)
-            TextField("Model", text: $model)
-            Toggle("Use API fallback", isOn: $useAPIFallback)
-            Button(saved ? "Saved" : "Save") { save() }
-            HStack {
-                Button(testingAPI ? "Testing..." : "Test API") { testAPI() }
-                    .disabled(testingAPI)
-                Text(apiStatus)
+
+            if freeTranslationProvider == .youdao {
+                Section("Youdao") {
+                    TextField("App ID", text: $youdaoAppID)
+                    SecureField("Secret", text: $youdaoSecret)
+                }
             }
-            Button("Restore Defaults") { restoreDefaults() }
+
+            if freeTranslationProvider == .baidu {
+                Section("Baidu") {
+                    TextField("App ID", text: $baiduAppID)
+                    SecureField("Secret", text: $baiduSecret)
+                }
+            }
+
+            Section("API Fallback") {
+                Toggle("Use API fallback", isOn: $useAPIFallback)
+                TextField("Base URL", text: $baseURL)
+                SecureField("API Key", text: $apiKey)
+                TextField("Model", text: $model)
+                HStack {
+                    Button(testingAPI ? "Testing..." : "Test API") { testAPI() }
+                        .disabled(testingAPI)
+                    Text(apiStatus)
+                }
+            }
+
+            HStack {
+                Button(saved ? "Saved" : "Save") { save() }
+                Button("Restore Defaults") { restoreDefaults() }
+            }
         }
         .padding()
-        .frame(width: 460)
+        .frame(width: 560)
         .onChange(of: baseURL) { _ in saved = false }
         .onChange(of: model) { _ in saved = false }
         .onChange(of: targetLanguage) { _ in saved = false }
+        .onChange(of: freeTranslationProvider) { _ in saved = false }
+        .onChange(of: youdaoAppID) { _ in saved = false }
+        .onChange(of: youdaoSecret) { _ in saved = false }
+        .onChange(of: baiduAppID) { _ in saved = false }
+        .onChange(of: baiduSecret) { _ in saved = false }
         .onChange(of: apiKey) { _ in saved = false }
         .onChange(of: useAPIFallback) { _ in saved = false }
     }
 
     private func save() {
         saved = saveModel.save(
-            SettingsDraft(baseURL: baseURL, model: model, targetLanguage: targetLanguage, apiKey: apiKey, useAPIFallback: useAPIFallback)
+            SettingsDraft(
+                baseURL: baseURL,
+                model: model,
+                targetLanguage: targetLanguage,
+                freeTranslationProvider: freeTranslationProvider,
+                youdaoAppID: youdaoAppID,
+                youdaoSecret: youdaoSecret,
+                baiduAppID: baiduAppID,
+                baiduSecret: baiduSecret,
+                apiKey: apiKey,
+                useAPIFallback: useAPIFallback
+            )
         )
     }
 
@@ -82,6 +135,11 @@ struct SettingsView: View {
         baseURL = settings.baseURL.absoluteString
         model = settings.model
         targetLanguage = settings.targetLanguage
+        freeTranslationProvider = settings.freeTranslationProvider
+        youdaoAppID = settings.youdaoAppID
+        youdaoSecret = settings.youdaoSecret
+        baiduAppID = settings.baiduAppID
+        baiduSecret = settings.baiduSecret
         apiKey = settings.apiKey
         useAPIFallback = settings.useAPIFallback
         apiStatus = ""

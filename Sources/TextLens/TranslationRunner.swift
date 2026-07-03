@@ -15,7 +15,7 @@ final class TranslationRunner {
 
     private let settings: SettingsStore
     private let api: TranslationService
-    private let free = GoogleTranslationService()
+    private let free = FreeTranslationService()
 
     init(settings: SettingsStore, api: TranslationService) {
         self.settings = settings
@@ -23,17 +23,38 @@ final class TranslationRunner {
     }
 
     func translate(_ text: String) async throws -> String {
-        do {
-            return try await free.translate(text: text, targetLanguage: settings.targetLanguage)
-        } catch {
-            guard settings.useAPIFallback, !settings.apiKey.isEmpty else {
-                throw Error.freeTranslationFailed(error.localizedDescription)
+        var freeError: Swift.Error?
+        for config in freeConfigs() {
+            do {
+                return try await free.translate(text: text, targetLanguage: settings.targetLanguage, config: config)
+            } catch {
+                freeError = error
             }
-            return try await api.translate(
-                text: text,
-                targetLanguage: settings.targetLanguage,
-                config: .init(baseURL: settings.baseURL, apiKey: settings.apiKey, model: settings.model)
-            )
         }
+
+        guard settings.useAPIFallback, !settings.apiKey.isEmpty else {
+            throw Error.freeTranslationFailed(freeError?.localizedDescription ?? "No free provider was available.")
+        }
+
+        return try await api.translate(
+            text: text,
+            targetLanguage: settings.targetLanguage,
+            config: .init(baseURL: settings.baseURL, apiKey: settings.apiKey, model: settings.model)
+        )
+    }
+
+    private func freeConfigs() -> [FreeTranslationService.Config] {
+        let selected = FreeTranslationService.Config(
+            provider: settings.freeTranslationProvider,
+            youdaoAppID: settings.youdaoAppID,
+            youdaoSecret: settings.youdaoSecret,
+            baiduAppID: settings.baiduAppID,
+            baiduSecret: settings.baiduSecret
+        )
+
+        let backupProviders: [FreeTranslationProvider] = [.google, .myMemory]
+            .filter { $0 != settings.freeTranslationProvider }
+
+        return [selected] + backupProviders.map { .init(provider: $0) }
     }
 }
