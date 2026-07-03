@@ -69,6 +69,8 @@ private final class RegionSelectionView: NSView {
         NSColor.black.withAlphaComponent(0.25).setFill()
         bounds.fill()
 
+        drawCancelHint()
+
         guard let start, let current else { return }
         let rect = CGRect(
             x: min(start.x, current.x),
@@ -80,5 +82,28 @@ private final class RegionSelectionView: NSView {
         rect.fill(using: .copy)
         NSColor.systemBlue.setStroke()
         NSBezierPath(rect: rect).stroke()
+    }
+
+    private func drawCancelHint() {
+        let text = "Esc to cancel"
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 14, weight: .medium),
+            .foregroundColor: NSColor.white
+        ]
+        let textSize = text.size(withAttributes: attributes)
+        let padding = NSSize(width: 14, height: 8)
+        let bubble = NSRect(
+            x: bounds.maxX - textSize.width - padding.width * 2 - 20,
+            y: bounds.maxY - textSize.height - padding.height * 2 - 20,
+            width: textSize.width + padding.width * 2,
+            height: textSize.height + padding.height * 2
+        )
+
+        NSColor.black.withAlphaComponent(0.55).setFill()
+        NSBezierPath(roundedRect: bubble, xRadius: 8, yRadius: 8).fill()
+        text.draw(
+            at: NSPoint(x: bubble.minX + padding.width, y: bubble.minY + padding.height),
+            withAttributes: attributes
+        )
     }
 }
