@@ -26,8 +26,10 @@ final class AppShell: NSObject, NSApplicationDelegate {
     )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.title = "TextLens"
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        item.button?.image = .textLensStatusIcon
+        item.button?.imagePosition = .imageOnly
+        item.button?.toolTip = "TextLens"
 
         let menu = NSMenu()
         menu.addItem(NSMenuItem(title: "Translate Selection", action: #selector(translateSelection), keyEquivalent: ""))
@@ -71,5 +73,32 @@ final class AppShell: NSObject, NSApplicationDelegate {
 
     @objc private func quit() {
         NSApplication.shared.terminate(nil)
+    }
+}
+
+private extension NSImage {
+    static var textLensStatusIcon: NSImage {
+        let image = NSImage(size: NSSize(width: 18, height: 18), flipped: false) { _ in
+            NSColor.black.setStroke()
+
+            let box = NSBezierPath(roundedRect: NSRect(x: 9.8, y: 10, width: 7.2, height: 5.4), xRadius: 1.6, yRadius: 1.6)
+            box.lineWidth = 1.35
+            box.stroke()
+
+            let lines = NSBezierPath()
+            lines.lineWidth = 1.5
+            lines.lineCapStyle = .round
+            lines.move(to: NSPoint(x: 2.2, y: 9.5))
+            lines.line(to: NSPoint(x: 7.2, y: 9.5))
+            lines.move(to: NSPoint(x: 2.2, y: 5.7))
+            lines.line(to: NSPoint(x: 16, y: 5.7))
+            lines.move(to: NSPoint(x: 5.8, y: 2.8))
+            lines.line(to: NSPoint(x: 12.4, y: 2.8))
+            lines.stroke()
+
+            return true
+        }
+        image.isTemplate = true
+        return image
     }
 }
