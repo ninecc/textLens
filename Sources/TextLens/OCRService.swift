@@ -1,4 +1,4 @@
-import AppKit
+import CoreGraphics
 import Vision
 
 final class OCRService {
@@ -10,11 +10,7 @@ final class OCRService {
         }
     }
 
-    func recognizeText(in image: NSImage) async throws -> String {
-        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
-            throw Error.invalidImage
-        }
-
+    func recognizeText(in image: CGImage) async throws -> String {
         return try await withCheckedThrowingContinuation { continuation in
             let request = VNRecognizeTextRequest { request, error in
                 if let error {
@@ -26,11 +22,11 @@ final class OCRService {
                     .joined(separator: "\n") ?? ""
                 continuation.resume(returning: text.trimmingCharacters(in: .whitespacesAndNewlines))
             }
-            request.recognitionLevel = .accurate
-            request.usesLanguageCorrection = true
+            request.recognitionLevel = .fast
+            request.usesLanguageCorrection = false
 
             do {
-                try VNImageRequestHandler(cgImage: cgImage).perform([request])
+                try VNImageRequestHandler(cgImage: image).perform([request])
             } catch {
                 continuation.resume(throwing: error)
             }

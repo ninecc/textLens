@@ -36,6 +36,7 @@ final class ScreenCaptureTranslator {
             }
         }
         selectionWindow = window
+        NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
         window.makeFirstResponder(window.contentView)
     }
@@ -67,16 +68,13 @@ final class ScreenCaptureTranslator {
         }
     }
 
-    private func capture(region: CGRect, on screen: NSScreen) -> NSImage? {
+    private func capture(region: CGRect, on screen: NSScreen) -> CGImage? {
         let globalRect = CGRect(
             x: screen.frame.minX + region.minX,
             y: screen.frame.minY + region.minY,
             width: region.width,
             height: region.height
         )
-        guard let image = CGWindowListCreateImage(globalRect, .optionOnScreenOnly, kCGNullWindowID, [.bestResolution]) else {
-            return nil
-        }
-        return NSImage(cgImage: image, size: globalRect.size)
+        return CGWindowListCreateImage(globalRect, .optionOnScreenOnly, kCGNullWindowID, [.bestResolution])
     }
 }

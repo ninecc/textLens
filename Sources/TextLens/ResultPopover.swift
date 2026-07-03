@@ -1,6 +1,6 @@
 import AppKit
 
-final class ResultPopover {
+final class ResultPopover: NSObject {
     private var window: NSWindow?
     private var translatedText = ""
 
@@ -11,11 +11,14 @@ final class ResultPopover {
     }
 
     private func present(original: String, translated: String) {
+        window?.close()
+        window = nil
         translatedText = translated
 
-        let textView = NSTextView(frame: NSRect(x: 12, y: 44, width: 376, height: 180))
-        textView.isEditable = false
-        textView.string = original.isEmpty ? translated : "Original:\n\(original)\n\nTranslation:\n\(translated)"
+        let text = NSTextField(labelWithString: original.isEmpty ? translated : "Original:\n\(original)\n\nTranslation:\n\(translated)")
+        text.frame = NSRect(x: 12, y: 44, width: 376, height: 180)
+        text.lineBreakMode = .byWordWrapping
+        text.maximumNumberOfLines = 0
 
         let copyButton = NSButton(frame: NSRect(x: 12, y: 12, width: 80, height: 24))
         copyButton.title = "Copy"
@@ -28,7 +31,7 @@ final class ResultPopover {
         closeButton.action = #selector(close)
 
         let content = NSView(frame: NSRect(x: 0, y: 0, width: 400, height: 236))
-        content.addSubview(textView)
+        content.addSubview(text)
         content.addSubview(copyButton)
         content.addSubview(closeButton)
 
