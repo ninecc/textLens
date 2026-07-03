@@ -42,8 +42,9 @@ final class ScreenCaptureTranslator {
     }
 
     private func translate(region: CGRect, on screen: NSScreen) {
+        let anchor = globalRect(region: region, on: screen)
         guard let image = capture(region: region, on: screen) else {
-            popover.show(original: "", translated: "Could not capture the selected region.")
+            popover.show(original: "", translated: "Could not capture the selected region.", anchor: anchor)
             return
         }
 
@@ -52,29 +53,32 @@ final class ScreenCaptureTranslator {
                 let text = try await ocr.recognizeText(in: image)
                 guard !text.isEmpty else {
                     await MainActor.run {
-                        popover.show(original: "", translated: "No text recognized.")
+                        popover.show(original: "", translated: "No text recognized.", anchor: anchor)
                     }
                     return
                 }
                 let translated = try await translation.translate(text)
                 await MainActor.run {
-                    popover.show(original: text, translated: translated)
+                    popover.show(original: text, translated: translated, anchor: anchor)
                 }
             } catch {
                 await MainActor.run {
-                    popover.show(original: "", translated: error.localizedDescription)
+                    popover.show(original: "", translated: error.localizedDescription, anchor: anchor)
                 }
             }
         }
     }
 
     private func capture(region: CGRect, on screen: NSScreen) -> CGImage? {
-        let globalRect = CGRect(
+        CGWindowListCreateImage(globalRect(region: region, on: screen), .optionOnScreenOnly, kCGNullWindowID, [.bestResolution])
+    }
+
+    private func globalRect(region: CGRect, on screen: NSScreen) -> CGRect {
+        CGRect(
             x: screen.frame.minX + region.minX,
             y: screen.frame.minY + region.minY,
             width: region.width,
             height: region.height
         )
-        return CGWindowListCreateImage(globalRect, .optionOnScreenOnly, kCGNullWindowID, [.bestResolution])
     }
 }

@@ -1,16 +1,17 @@
 import AppKit
+import TextLensCore
 
 final class ResultPopover: NSObject {
     private var window: NSWindow?
     private var translatedText = ""
 
-    func show(original: String, translated: String) {
+    func show(original: String, translated: String, anchor: CGRect? = nil) {
         DispatchQueue.main.async { [weak self] in
-            self?.present(original: original, translated: translated)
+            self?.present(original: original, translated: translated, anchor: anchor)
         }
     }
 
-    private func present(original: String, translated: String) {
+    private func present(original: String, translated: String, anchor: CGRect?) {
         window?.close()
         window = nil
         translatedText = translated
@@ -37,18 +38,16 @@ final class ResultPopover: NSObject {
 
         let point = NSEvent.mouseLocation
         let size = NSSize(width: 400, height: 236)
-        let visibleFrame = NSScreen.screens.first(where: { $0.frame.contains(point) })?.visibleFrame ?? NSScreen.main?.visibleFrame ?? .zero
-        let frame = NSRect(
-            x: min(max(point.x + 12, visibleFrame.minX), visibleFrame.maxX - size.width),
-            y: min(max(point.y - size.height, visibleFrame.minY), visibleFrame.maxY - size.height),
-            width: size.width,
-            height: size.height
-        )
+        let screenPoint = anchor.map { CGPoint(x: $0.midX, y: $0.midY) } ?? point
+        let visibleFrame = NSScreen.screens.first(where: { $0.frame.contains(screenPoint) })?.visibleFrame ?? NSScreen.main?.visibleFrame ?? .zero
+        let frame = ResultPopoverPlacement.frame(size: size, point: point, anchor: anchor, visibleFrame: visibleFrame)
         let window = NSPanel(contentRect: frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         window.level = .floating
         window.hasShadow = true
-        window.backgroundColor = .windowBackgroundColor
+        window.isOpaque = false
+        window.isMovableByWindowBackground = true
+        window.backgroundColor = NSColor.windowBackgroundColor.withAlphaComponent(0.9)
         window.contentView = content
         window.orderFrontRegardless()
         self.window = window
