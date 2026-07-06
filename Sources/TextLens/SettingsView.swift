@@ -4,6 +4,7 @@ import TextLensCore
 struct SettingsView: View {
     private enum Pane: String, CaseIterable, Identifiable {
         case translation = "Translation"
+        case permissions = "Permissions"
         case popover = "Popover"
         case api = "API Fallback"
 
@@ -29,6 +30,7 @@ struct SettingsView: View {
     private let settings: SettingsStore
     private let saveModel: SettingsSaveModel
     private let translation = TranslationService()
+    private let permissionCenter = PermissionCenter()
 
     init(settings: SettingsStore) {
         self.settings = settings
@@ -109,6 +111,24 @@ struct SettingsView: View {
                 }
 
                 credentialsSection
+            }
+        case .permissions:
+            page("Permissions") {
+                permissionRow(
+                    "Accessibility",
+                    state: permissionCenter.accessibility,
+                    actionTitle: "Open Accessibility"
+                ) {
+                    permissionCenter.openAccessibilitySettings()
+                }
+
+                permissionRow(
+                    "Screen Recording",
+                    state: permissionCenter.screenRecording,
+                    actionTitle: "Open Screen Recording"
+                ) {
+                    permissionCenter.openScreenRecordingSettings()
+                }
             }
         case .popover:
             page("Popover") {
@@ -202,6 +222,17 @@ struct SettingsView: View {
                 .foregroundStyle(.secondary)
             content()
                 .frame(maxWidth: 420, alignment: .leading)
+        }
+    }
+
+    private func permissionRow(_ title: String, state: PermissionState, actionTitle: String, action: @escaping () -> Void) -> some View {
+        formRow(title) {
+            HStack(spacing: 12) {
+                Text(state.displayName)
+                    .foregroundStyle(state.isGranted ? .green : .secondary)
+                    .frame(width: 72, alignment: .leading)
+                Button(actionTitle, action: action)
+            }
         }
     }
 
