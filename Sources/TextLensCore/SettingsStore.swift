@@ -16,9 +16,11 @@ public final class SettingsStore {
     }
 
     private let defaults: UserDefaults
+    private let secrets: SecretStore
 
-    public init(defaults: UserDefaults = .standard) {
+    public init(defaults: UserDefaults = .standard, secrets: SecretStore = KeychainStore()) {
         self.defaults = defaults
+        self.secrets = secrets
     }
 
     public var baseURL: URL {
@@ -52,8 +54,8 @@ public final class SettingsStore {
     }
 
     public var youdaoSecret: String {
-        get { defaults.string(forKey: Key.youdaoSecret) ?? "" }
-        set { defaults.set(newValue, forKey: Key.youdaoSecret) }
+        get { migratedSecret(forKey: Key.youdaoSecret) }
+        set { secrets.setString(newValue, forKey: Key.youdaoSecret) }
     }
 
     public var baiduAppID: String {
@@ -62,13 +64,13 @@ public final class SettingsStore {
     }
 
     public var baiduSecret: String {
-        get { defaults.string(forKey: Key.baiduSecret) ?? "" }
-        set { defaults.set(newValue, forKey: Key.baiduSecret) }
+        get { migratedSecret(forKey: Key.baiduSecret) }
+        set { secrets.setString(newValue, forKey: Key.baiduSecret) }
     }
 
     public var apiKey: String {
-        get { defaults.string(forKey: Key.apiKey) ?? "" }
-        set { defaults.set(newValue, forKey: Key.apiKey) }
+        get { migratedSecret(forKey: Key.apiKey) }
+        set { secrets.setString(newValue, forKey: Key.apiKey) }
     }
 
     public var useAPIFallback: Bool {
@@ -99,5 +101,18 @@ public final class SettingsStore {
         defaults.removeObject(forKey: Key.apiKey)
         defaults.removeObject(forKey: Key.useAPIFallback)
         defaults.removeObject(forKey: Key.screenshotPopoverOpacity)
+        secrets.removeString(forKey: Key.apiKey)
+        secrets.removeString(forKey: Key.youdaoSecret)
+        secrets.removeString(forKey: Key.baiduSecret)
+    }
+
+    private func migratedSecret(forKey key: String) -> String {
+        let current = secrets.string(forKey: key)
+        guard current.isEmpty, let old = defaults.string(forKey: key), !old.isEmpty else {
+            return current
+        }
+        secrets.setString(old, forKey: key)
+        defaults.removeObject(forKey: key)
+        return old
     }
 }

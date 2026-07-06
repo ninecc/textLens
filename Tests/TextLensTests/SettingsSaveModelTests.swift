@@ -4,7 +4,7 @@ import XCTest
 final class SettingsSaveModelTests: XCTestCase {
     func testSaveWritesSettings() {
         let defaults = UserDefaults(suiteName: UUID().uuidString)!
-        let store = SettingsStore(defaults: defaults)
+        let store = SettingsStore(defaults: defaults, secrets: InMemorySecretStore())
         let model = SettingsSaveModel(settings: store)
 
         let result = model.save(

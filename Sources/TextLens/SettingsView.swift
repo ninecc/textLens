@@ -5,7 +5,7 @@ struct SettingsView: View {
     private enum Pane: String, CaseIterable, Identifiable {
         case translation = "Translation"
         case popover = "Popover"
-        case api = "API"
+        case api = "API Fallback"
 
         var id: Self { self }
     }
@@ -125,8 +125,8 @@ struct SettingsView: View {
                 }
             }
         case .api:
-            page("API") {
-                formRow("Use API fallback") {
+            page("API Fallback") {
+                formRow("Use API when free translation fails") {
                     Toggle("", isOn: $useAPIFallback)
                         .labelsHidden()
                 }
