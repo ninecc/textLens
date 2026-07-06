@@ -6,14 +6,16 @@ final class ScreenCaptureTranslator {
     private let ocr: OCRService
     private let translation: TranslationRunner
     private let popover: ResultPopover
-    private var selectionWindow: RegionSelectionWindow?
+    private let historyStore: TranslationHistoryStore
+    private var selectionWindows: [RegionSelectionWindow] = []
     private var popoverOpacity: Double { settings.screenshotPopoverOpacity }
 
-    init(settings: SettingsStore, ocr: OCRService, translation: TranslationService, popover: ResultPopover) {
+    init(settings: SettingsStore, ocr: OCRService, translation: TranslationService, popover: ResultPopover, historyStore: TranslationHistoryStore) {
         self.settings = settings
         self.ocr = ocr
         self.translation = TranslationRunner(settings: settings, api: translation)
         self.popover = popover
+        self.historyStore = historyStore
     }
 
     func start() {
@@ -27,23 +29,20 @@ final class ScreenCaptureTranslator {
             return
         }
 
-        guard let screen = NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) }) else {
-            popover.show(original: "", translated: "Could not find the current screen.", backgroundOpacity: popoverOpacity)
-            return
-        }
-
-        let window = RegionSelectionWindow(screen: screen) { [weak self] rect in
-            DispatchQueue.main.async {
-                self?.selectionWindow?.close()
-                self?.selectionWindow = nil
-                guard let rect else { return }
-                self?.translate(region: rect, on: screen)
+        selectionWindows = NSScreen.screens.map { screen in
+            RegionSelectionWindow(screen: screen) { [weak self] rect in
+                DispatchQueue.main.async {
+                    self?.closeSelectionWindows()
+                    guard let rect else { return }
+                    self?.translate(region: rect, on: screen)
+                }
             }
         }
-        selectionWindow = window
         NSApp.activate(ignoringOtherApps: true)
-        window.makeKeyAndOrderFront(nil)
-        window.makeFirstResponder(window.contentView)
+        selectionWindows.forEach { window in
+            window.makeKeyAndOrderFront(nil)
+            window.makeFirstResponder(window.contentView)
+        }
     }
 
     private func translate(region: CGRect, on screen: NSScreen) {
@@ -76,12 +75,17 @@ final class ScreenCaptureTranslator {
                     }
                     return
                 }
-                await MainActor.run {
-                    popover.show(original: text, translated: "Translating...", anchor: anchor, backgroundOpacity: popoverOpacity, isLoading: true)
+                let editedText = await MainActor.run {
+                    confirmOCRText(text) ?? ""
                 }
-                let translated = try await translation.translate(text)
+                guard !editedText.isEmpty else { return }
                 await MainActor.run {
-                    popover.show(original: text, translated: translated, anchor: anchor, backgroundOpacity: popoverOpacity)
+                    popover.show(original: editedText, translated: "Translating...", anchor: anchor, backgroundOpacity: popoverOpacity, isLoading: true)
+                }
+                let translated = try await translation.translate(editedText)
+                await MainActor.run {
+                    historyStore.add(original: editedText, translated: translated)
+                    popover.show(original: editedText, translated: translated, anchor: anchor, backgroundOpacity: popoverOpacity)
                 }
             } catch {
                 await MainActor.run {
@@ -104,6 +108,30 @@ final class ScreenCaptureTranslator {
             return
         }
         translate(region: region, on: screen)
+    }
+
+    private func closeSelectionWindows() {
+        selectionWindows.forEach { $0.close() }
+        selectionWindows = []
+    }
+
+    private func confirmOCRText(_ text: String) -> String? {
+        let alert = NSAlert()
+        alert.messageText = "Confirm OCR Text"
+        alert.informativeText = "Edit recognized text before translation."
+        alert.addButton(withTitle: "Translate")
+        alert.addButton(withTitle: "Cancel")
+
+        let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: 420, height: 160))
+        let textView = NSTextView(frame: scrollView.bounds)
+        textView.string = text
+        scrollView.documentView = textView
+        scrollView.hasVerticalScroller = true
+        alert.accessoryView = scrollView
+
+        return alert.runModal() == .alertFirstButtonReturn
+            ? textView.string.trimmingCharacters(in: .whitespacesAndNewlines)
+            : nil
     }
 
     private func capture(region: CGRect, on screen: NSScreen) -> CGImage? {

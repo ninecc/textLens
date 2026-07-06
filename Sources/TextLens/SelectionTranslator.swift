@@ -5,11 +5,13 @@ final class SelectionTranslator {
     private let settings: SettingsStore
     private let translation: TranslationRunner
     private let popover: ResultPopover
+    private let historyStore: TranslationHistoryStore
 
-    init(settings: SettingsStore, translation: TranslationService, popover: ResultPopover) {
+    init(settings: SettingsStore, translation: TranslationService, popover: ResultPopover, historyStore: TranslationHistoryStore) {
         self.settings = settings
         self.translation = TranslationRunner(settings: settings, api: translation)
         self.popover = popover
+        self.historyStore = historyStore
     }
 
     func translateClipboard() {
@@ -93,6 +95,7 @@ final class SelectionTranslator {
             do {
                 let translated = try await translation.translate(text)
                 await MainActor.run {
+                    historyStore.add(original: text, translated: translated)
                     popover.show(original: text, translated: translated)
                 }
             } catch {

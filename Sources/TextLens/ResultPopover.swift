@@ -3,6 +3,7 @@ import TextLensCore
 
 final class ResultPopover: NSObject {
     private var window: NSWindow?
+    private var expandedWindow: NSWindow?
     private var originalText = ""
     private var translatedText = ""
     private var retryAction: (() -> Void)?
@@ -58,13 +59,19 @@ final class ResultPopover: NSObject {
         copyTranslationButton.action = #selector(copyTranslation)
         copyTranslationButton.isEnabled = !isLoading && !translated.isEmpty
 
-        let retryButton = NSButton(frame: NSRect(x: 252, y: 12, width: 56, height: 24))
+        let retryButton = NSButton(frame: NSRect(x: 248, y: 12, width: 48, height: 24))
         retryButton.title = "Retry"
         retryButton.target = self
         retryButton.action = #selector(retryTranslation)
         retryButton.isEnabled = retry != nil && !isLoading
 
-        let closeButton = NSButton(frame: NSRect(x: 316, y: 12, width: 72, height: 24))
+        let expandButton = NSButton(frame: NSRect(x: 300, y: 12, width: 56, height: 24))
+        expandButton.title = "Expand"
+        expandButton.target = self
+        expandButton.action = #selector(expand)
+        expandButton.isEnabled = !isLoading && (!original.isEmpty || !translated.isEmpty)
+
+        let closeButton = NSButton(frame: NSRect(x: 360, y: 12, width: 36, height: 24))
         closeButton.title = "Close"
         closeButton.target = self
         closeButton.action = #selector(close)
@@ -74,6 +81,7 @@ final class ResultPopover: NSObject {
         content.addSubview(copyOriginalButton)
         content.addSubview(copyTranslationButton)
         content.addSubview(retryButton)
+        content.addSubview(expandButton)
         content.addSubview(closeButton)
 
         let point = NSEvent.mouseLocation
@@ -105,6 +113,24 @@ final class ResultPopover: NSObject {
 
     @objc private func retryTranslation() {
         retryAction?()
+    }
+
+    @objc private func expand() {
+        expandedWindow?.close()
+        let content = NSTextView(frame: NSRect(x: 0, y: 0, width: 620, height: 420))
+        content.string = originalText.isEmpty ? translatedText : "Original:\n\(originalText)\n\nTranslation:\n\(translatedText)"
+        content.isEditable = false
+
+        let scrollView = NSScrollView(frame: content.frame)
+        scrollView.documentView = content
+        scrollView.hasVerticalScroller = true
+
+        let window = NSWindow(contentRect: scrollView.frame, styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+        window.title = "TextLens Result"
+        window.contentView = scrollView
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        expandedWindow = window
     }
 
     @objc private func close() {

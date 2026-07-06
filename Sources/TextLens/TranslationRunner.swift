@@ -26,9 +26,11 @@ final class TranslationRunner {
         var freeError: Swift.Error?
         for config in freeConfigs() {
             do {
-                return try await free.translate(text: text, targetLanguage: settings.targetLanguage, config: config)
+                let translated = try await free.translate(text: text, targetLanguage: settings.targetLanguage, config: config)
+                return finish(translated, provider: config.provider.displayName)
             } catch {
                 freeError = error
+                settings.providerHealth = "\(config.provider.displayName) failed: \(error.localizedDescription)"
             }
         }
 
@@ -36,11 +38,12 @@ final class TranslationRunner {
             throw Error.freeTranslationFailed(freeError?.localizedDescription ?? "No free provider was available.")
         }
 
-        return try await api.translate(
+        let translated = try await api.translate(
             text: text,
             targetLanguage: settings.targetLanguage,
             config: .init(baseURL: settings.baseURL, apiKey: settings.apiKey, model: settings.model)
         )
+        return finish(translated, provider: "API fallback")
     }
 
     private func freeConfigs() -> [FreeTranslationService.Config] {
@@ -56,5 +59,10 @@ final class TranslationRunner {
             .filter { $0 != settings.freeTranslationProvider }
 
         return [selected] + backupProviders.map { .init(provider: $0) }
+    }
+
+    private func finish(_ translated: String, provider: String) -> String {
+        settings.providerHealth = "Last success: \(provider)"
+        return Glossary(text: settings.glossaryText).apply(to: translated)
     }
 }

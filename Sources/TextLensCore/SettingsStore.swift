@@ -14,6 +14,10 @@ public final class SettingsStore {
         static let useAPIFallback = "useAPIFallback"
         static let screenshotPopoverOpacity = "screenshotPopoverOpacity"
         static let hasSeenOnboarding = "hasSeenOnboarding"
+        static let selectionHotKey = "selectionHotKey"
+        static let screenshotHotKey = "screenshotHotKey"
+        static let glossaryText = "glossaryText"
+        static let providerHealth = "providerHealth"
     }
 
     private let defaults: UserDefaults
@@ -95,6 +99,26 @@ public final class SettingsStore {
         set { defaults.set(newValue, forKey: Key.hasSeenOnboarding) }
     }
 
+    public var selectionHotKey: String {
+        get { hotKey(for: Key.selectionHotKey, defaultValue: "S") }
+        set { defaults.set(normalizedHotKey(newValue, defaultValue: "S"), forKey: Key.selectionHotKey) }
+    }
+
+    public var screenshotHotKey: String {
+        get { hotKey(for: Key.screenshotHotKey, defaultValue: "T") }
+        set { defaults.set(normalizedHotKey(newValue, defaultValue: "T"), forKey: Key.screenshotHotKey) }
+    }
+
+    public var glossaryText: String {
+        get { defaults.string(forKey: Key.glossaryText) ?? "" }
+        set { defaults.set(newValue, forKey: Key.glossaryText) }
+    }
+
+    public var providerHealth: String {
+        get { defaults.string(forKey: Key.providerHealth) ?? "No provider checks yet." }
+        set { defaults.set(newValue, forKey: Key.providerHealth) }
+    }
+
     public func resetToDefaults() {
         defaults.removeObject(forKey: Key.baseURL)
         defaults.removeObject(forKey: Key.model)
@@ -108,9 +132,22 @@ public final class SettingsStore {
         defaults.removeObject(forKey: Key.useAPIFallback)
         defaults.removeObject(forKey: Key.screenshotPopoverOpacity)
         defaults.removeObject(forKey: Key.hasSeenOnboarding)
+        defaults.removeObject(forKey: Key.selectionHotKey)
+        defaults.removeObject(forKey: Key.screenshotHotKey)
+        defaults.removeObject(forKey: Key.glossaryText)
+        defaults.removeObject(forKey: Key.providerHealth)
         secrets.removeString(forKey: Key.apiKey)
         secrets.removeString(forKey: Key.youdaoSecret)
         secrets.removeString(forKey: Key.baiduSecret)
+    }
+
+    private func hotKey(for key: String, defaultValue: String) -> String {
+        normalizedHotKey(defaults.string(forKey: key) ?? defaultValue, defaultValue: defaultValue)
+    }
+
+    private func normalizedHotKey(_ value: String, defaultValue: String) -> String {
+        guard let letter = value.uppercased().first, letter.isLetter else { return defaultValue }
+        return String(letter)
     }
 
     private func migratedSecret(forKey key: String) -> String {

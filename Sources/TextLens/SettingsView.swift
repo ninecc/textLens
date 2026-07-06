@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import TextLensCore
 
@@ -6,6 +7,9 @@ struct SettingsView: View {
         case translation = "Translation"
         case permissions = "Permissions"
         case popover = "Popover"
+        case shortcuts = "Shortcuts"
+        case history = "History"
+        case glossary = "Glossary"
         case api = "API Fallback"
 
         var id: Self { self }
@@ -23,20 +27,32 @@ struct SettingsView: View {
     @State private var apiKey: String
     @State private var useAPIFallback: Bool
     @State private var screenshotPopoverOpacity: Double
+    @State private var selectionHotKey: String
+    @State private var screenshotHotKey: String
+    @State private var historyEnabled: Bool
+    @State private var historyItems: [TranslationHistoryItem]
+    @State private var glossaryText: String
+    @State private var exportStatus = ""
     @State private var saved = false
     @State private var apiStatus = ""
     @State private var testingAPI = false
     @State private var freeProviderStatus = ""
     @State private var testingFreeProvider = false
+    @State private var comparisonStatus = ""
+    @State private var testingComparison = false
 
     private let settings: SettingsStore
+    private let historyStore: TranslationHistoryStore
+    private let onShortcutsChanged: () -> Void
     private let saveModel: SettingsSaveModel
     private let translation = TranslationService()
     private let freeTranslation = FreeTranslationService()
     private let permissionCenter = PermissionCenter()
 
-    init(settings: SettingsStore) {
+    init(settings: SettingsStore, historyStore: TranslationHistoryStore = TranslationHistoryStore(), onShortcutsChanged: @escaping () -> Void = {}) {
         self.settings = settings
+        self.historyStore = historyStore
+        self.onShortcutsChanged = onShortcutsChanged
         saveModel = SettingsSaveModel(settings: settings)
         _baseURL = State(initialValue: settings.baseURL.absoluteString)
         _model = State(initialValue: settings.model)
@@ -49,6 +65,11 @@ struct SettingsView: View {
         _apiKey = State(initialValue: settings.apiKey)
         _useAPIFallback = State(initialValue: settings.useAPIFallback)
         _screenshotPopoverOpacity = State(initialValue: settings.screenshotPopoverOpacity)
+        _selectionHotKey = State(initialValue: settings.selectionHotKey)
+        _screenshotHotKey = State(initialValue: settings.screenshotHotKey)
+        _historyEnabled = State(initialValue: historyStore.isEnabled)
+        _historyItems = State(initialValue: historyStore.items)
+        _glossaryText = State(initialValue: settings.glossaryText)
     }
 
     var body: some View {
@@ -74,7 +95,7 @@ struct SettingsView: View {
             }
             .padding(24)
         }
-        .frame(width: 820, height: 520)
+        .frame(width: 880, height: 620)
         .onChange(of: baseURL) { _ in saved = false }
         .onChange(of: model) { _ in saved = false }
         .onChange(of: targetLanguage) { _ in saved = false }
@@ -86,6 +107,10 @@ struct SettingsView: View {
         .onChange(of: apiKey) { _ in saved = false }
         .onChange(of: useAPIFallback) { _ in saved = false }
         .onChange(of: screenshotPopoverOpacity) { _ in saved = false }
+        .onChange(of: selectionHotKey) { _ in saved = false }
+        .onChange(of: screenshotHotKey) { _ in saved = false }
+        .onChange(of: historyEnabled) { _ in saved = false }
+        .onChange(of: glossaryText) { _ in saved = false }
     }
 
     @ViewBuilder
@@ -124,14 +149,28 @@ struct SettingsView: View {
                         .lineLimit(2)
                 }
 
+                formRow("Provider Health") {
+                    Text(settings.providerHealth)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+
                 HStack(spacing: 12) {
                     Spacer()
                         .frame(width: 150)
                     Button(testingFreeProvider ? "Testing..." : "Test Free Provider") { testFreeProvider() }
                         .disabled(testingFreeProvider)
+                    Button(testingComparison ? "Comparing..." : "Compare Providers") { compareProviders() }
+                        .disabled(testingComparison)
                     Text(freeProviderStatus)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
+                }
+
+                formRow("Comparison") {
+                    Text(comparisonStatus.isEmpty ? "No comparison yet." : comparisonStatus)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(4)
                 }
 
                 credentialsSection
@@ -167,6 +206,52 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+            }
+        case .shortcuts:
+            page("Shortcuts") {
+                shortcutRow("Translate Selection", selection: $selectionHotKey)
+                shortcutRow("Screenshot Translate", selection: $screenshotHotKey)
+                formRow("Status") {
+                    Text("Uses Control + Option + Command plus the selected key. If macOS refuses a shortcut, choose another key.")
+                        .foregroundStyle(.secondary)
+                        .lineLimit(3)
+                }
+            }
+        case .history:
+            page("History") {
+                formRow("Save History") {
+                    Toggle("", isOn: $historyEnabled)
+                        .labelsHidden()
+                }
+                HStack(spacing: 12) {
+                    Spacer()
+                        .frame(width: 150)
+                    Button("Clear History") { clearHistory() }
+                    Button("Export History") { exportHistory() }
+                    Text(exportStatus)
+                        .foregroundStyle(.secondary)
+                }
+                List(historyItems) { item in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(item.original)
+                            .lineLimit(1)
+                        Text(item.translated)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
+                }
+                .frame(minHeight: 260)
+            }
+        case .glossary:
+            page("Glossary") {
+                formRow("Entries") {
+                    Text("One entry per line: source=preferred translation")
+                        .foregroundStyle(.secondary)
+                }
+                TextEditor(text: $glossaryText)
+                    .font(.system(.body, design: .monospaced))
+                    .frame(minHeight: 320)
+                    .border(Color.secondary.opacity(0.25))
             }
         case .api:
             page("API Fallback") {
@@ -260,12 +345,28 @@ struct SettingsView: View {
         }
     }
 
+    private func shortcutRow(_ title: String, selection: Binding<String>) -> some View {
+        formRow(title) {
+            Picker("", selection: selection) {
+                ForEach(shortcutKeys, id: \.self) { key in
+                    Text(key).tag(key)
+                }
+            }
+            .labelsHidden()
+            .frame(width: 90)
+        }
+    }
+
     private var actionsSection: some View {
         HStack {
             Spacer()
             Button(saved ? "Saved" : "Save") { save() }
             Button("Restore Defaults") { restoreDefaults() }
         }
+    }
+
+    private var shortcutKeys: [String] {
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ".map(String.init)
     }
 
     private func save() {
@@ -284,6 +385,11 @@ struct SettingsView: View {
                 screenshotPopoverOpacity: screenshotPopoverOpacity
             )
         )
+        settings.selectionHotKey = selectionHotKey
+        settings.screenshotHotKey = screenshotHotKey
+        settings.glossaryText = glossaryText
+        historyStore.isEnabled = historyEnabled
+        onShortcutsChanged()
     }
 
     private func testAPI() {
@@ -322,6 +428,26 @@ struct SettingsView: View {
         }
     }
 
+    private func compareProviders() {
+        testingComparison = true
+        comparisonStatus = ""
+        Task {
+            var results: [String] = []
+            for config in comparisonConfigs {
+                do {
+                    let output = try await freeTranslation.translate(text: "hello", targetLanguage: targetLanguage, config: config)
+                    results.append("\(config.provider.displayName): \(output)")
+                } catch {
+                    results.append("\(config.provider.displayName): \(error.localizedDescription)")
+                }
+            }
+            await MainActor.run {
+                comparisonStatus = results.joined(separator: " | ")
+                testingComparison = false
+            }
+        }
+    }
+
     private func restoreDefaults() {
         settings.resetToDefaults()
         baseURL = settings.baseURL.absoluteString
@@ -335,9 +461,33 @@ struct SettingsView: View {
         apiKey = settings.apiKey
         useAPIFallback = settings.useAPIFallback
         screenshotPopoverOpacity = settings.screenshotPopoverOpacity
+        selectionHotKey = settings.selectionHotKey
+        screenshotHotKey = settings.screenshotHotKey
+        historyEnabled = historyStore.isEnabled
+        glossaryText = settings.glossaryText
         apiStatus = ""
         freeProviderStatus = ""
+        comparisonStatus = ""
+        exportStatus = ""
         saved = false
+    }
+
+    private func clearHistory() {
+        historyStore.clear()
+        historyItems = []
+        exportStatus = "Cleared."
+    }
+
+    private func exportHistory() {
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "textlens-history.txt"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try historyStore.exportText().write(to: url, atomically: true, encoding: .utf8)
+            exportStatus = "Exported."
+        } catch {
+            exportStatus = error.localizedDescription
+        }
     }
 
     private var strategySummary: String {
@@ -360,6 +510,24 @@ struct SettingsView: View {
             baiduAppID: baiduAppID,
             baiduSecret: baiduSecret
         )
+    }
+
+    private var comparisonConfigs: [FreeTranslationService.Config] {
+        var providers = [freeTranslationProvider, .google, .myMemory]
+        providers = providers.reduce(into: []) { result, provider in
+            if !result.contains(provider) {
+                result.append(provider)
+            }
+        }
+        return providers.map {
+            FreeTranslationService.Config(
+                provider: $0,
+                youdaoAppID: youdaoAppID,
+                youdaoSecret: youdaoSecret,
+                baiduAppID: baiduAppID,
+                baiduSecret: baiduSecret
+            )
+        }
     }
 
     private func clampedOpacity(_ value: Double) -> Double {

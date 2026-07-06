@@ -18,6 +18,8 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertFalse(store.useAPIFallback)
         XCTAssertEqual(store.screenshotPopoverOpacity, 0.9)
         XCTAssertFalse(store.hasSeenOnboarding)
+        XCTAssertEqual(store.selectionHotKey, "S")
+        XCTAssertEqual(store.screenshotHotKey, "T")
     }
 
     func testReadWrite() {
@@ -36,6 +38,8 @@ final class SettingsStoreTests: XCTestCase {
         store.useAPIFallback = true
         store.screenshotPopoverOpacity = 0.4
         store.hasSeenOnboarding = true
+        store.selectionHotKey = "A"
+        store.screenshotHotKey = "B"
 
         XCTAssertEqual(store.baseURL.absoluteString, "https://example.com/v1/chat/completions")
         XCTAssertEqual(store.model, "test-model")
@@ -49,6 +53,8 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertTrue(store.useAPIFallback)
         XCTAssertEqual(store.screenshotPopoverOpacity, 0.4)
         XCTAssertTrue(store.hasSeenOnboarding)
+        XCTAssertEqual(store.selectionHotKey, "A")
+        XCTAssertEqual(store.screenshotHotKey, "B")
     }
 
     func testSecretsAreStoredOutsideUserDefaults() {
@@ -122,6 +128,8 @@ final class SettingsStoreTests: XCTestCase {
         store.useAPIFallback = true
         store.screenshotPopoverOpacity = 0.4
         store.hasSeenOnboarding = true
+        store.selectionHotKey = "A"
+        store.screenshotHotKey = "B"
 
         store.resetToDefaults()
 
@@ -137,5 +145,7 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertFalse(store.useAPIFallback)
         XCTAssertEqual(store.screenshotPopoverOpacity, 0.9)
         XCTAssertFalse(store.hasSeenOnboarding)
+        XCTAssertEqual(store.selectionHotKey, "S")
+        XCTAssertEqual(store.screenshotHotKey, "T")
     }
 }

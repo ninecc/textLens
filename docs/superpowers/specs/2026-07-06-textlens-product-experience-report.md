@@ -59,12 +59,13 @@ floating results all exist.
 Automated checks passed after the P0 iteration:
 
 - `swift build --product TextLens`: passed
-- `swift test`: 26 tests passed
+- `swift test`: 29 tests passed
 - `swift run TextLensChecks`: `ok`
 
 The result popover now supports loading state, retry, copy original, copy
-translation, and close. Long-text expansion and history remain next-stage
-workflow improvements.
+translation, expanded viewing, and close. Translation history, glossary,
+provider comparison, history export, editable OCR confirmation, multi-display
+region selection, and custom shortcut settings are implemented.
 
 ## 3. Typical Use Cases
 
@@ -91,15 +92,12 @@ workflow improvements.
 - First launch opens Settings so users can complete permissions, language, and
   translation source setup.
 - Menu bar icon is abstract and may be hard to discover.
-- Result popover controls cover retry, copy, and close; an expanded long-text
-  view is still missing.
+- Result popover controls cover retry, copy, expand, and close.
 
 ### Function
 
-- No translation history.
-- No custom shortcuts.
-- No editable OCR text before translation.
-- Multi-display screenshot behavior is intentionally limited.
+- History, shortcut settings, editable OCR confirmation, glossary replacement,
+  and multi-display selection are available.
 
 ### Performance And Reliability
 
@@ -107,6 +105,9 @@ workflow improvements.
 - MyMemory fallback currently assumes English source text in its language pair,
   which may reduce accuracy for non-English source content.
 - Selected-text access depends on macOS Accessibility support in each app.
+- Offline translation was reviewed as a future research track, but no local
+  model is bundled because that would add size, latency, and model-management
+  complexity.
 
 ### Information Architecture
 
@@ -149,19 +150,19 @@ customization, and long-text workflows.
 
 ### P1
 
-1. Add local translation history for the latest 20 items.
-2. Support custom global shortcuts.
-3. Let users edit OCR text before translation.
-4. Add an expanded result window for long text.
-5. Add service health checks for translation providers.
+1. Done: local translation history keeps the latest 20 items and can be disabled or cleared.
+2. Done: selected-text and screenshot shortcuts can be changed in Settings.
+3. Done: OCR text can be edited before translation.
+4. Done: result popover can open an expanded result window.
+5. Done: provider health shows last success or recent failure messages.
 
 ### P2
 
-1. Add glossary and preferred translations.
-2. Improve full multi-display screenshot selection.
-3. Add provider quality and failure-rate indicators.
-4. Support history export.
-5. Explore offline translation options.
+1. Done: glossary entries apply preferred translations.
+2. Done: screenshot region selection opens on all available displays.
+3. Done: provider comparison and health messages show provider output or failures.
+4. Done: history can be exported to a text file.
+5. Done: offline translation is documented as research-only for now.
 
 # Next-Stage Product Requirements
 
@@ -225,37 +226,37 @@ Status: completed in the 2026-07-06 P0 iteration.
 
 ### P1
 
-Status: next implementation backlog.
+Status: completed in the 2026-07-06 remaining-backlog iteration.
 
 - Local translation history
-  - Keep the latest 20 results by default.
-  - Allow clearing history.
-  - Allow disabling history.
+  - Done: keep the latest 20 results by default.
+  - Done: allow clearing history.
+  - Done: allow disabling history.
 - Custom shortcuts
-  - Configure selected-text and screenshot translation shortcuts.
-  - Warn on unavailable shortcut capture when detectable.
+  - Done: configure selected-text and screenshot translation shortcuts.
+  - Done: show guidance when macOS refuses a shortcut.
 - OCR confirmation
-  - Allow editing recognized text before translation.
+  - Done: allow editing recognized text before translation.
 - Long-text result view
-  - Open an expanded window from the popover.
+  - Done: open an expanded window from the popover.
 - Provider health check
-  - Show last successful provider.
-  - Show recent provider failure messages.
+  - Done: show last successful provider.
+  - Done: show recent provider failure messages.
 
 ### P2
 
-Status: later research and power-user backlog.
+Status: completed or closed as research in the 2026-07-06 remaining-backlog iteration.
 
-- Glossary support.
-- Full multi-display region selection.
-- Translation quality comparison between providers.
-- History export.
-- Offline translation research.
+- Done: glossary support.
+- Done: full multi-display region selection.
+- Done: translation quality comparison between providers through a provider comparison action.
+- Done: history export.
+- Done: offline translation research closed as future validation, with no bundled model in this iteration.
 
 ## 4. Requirement Priority
 
-P0 fixes trust and basic reliability. P1 improves retention and daily workflow.
-P2 serves advanced or power-user needs after the core experience is stable.
+P0 fixed trust and basic reliability. P1 and P2 backlog items from this report
+are now complete or explicitly closed as research.
 
 ## 5. Key User Flows
 
@@ -276,7 +277,7 @@ P2 serves advanced or power-user needs after the core experience is stable.
 3. User drags a region.
 4. TextLens shows OCR and translation progress.
 5. TextLens displays original and translated text.
-6. User copies, retries, or closes. Expanded viewing and history are P1 work.
+6. User copies, retries, expands, saves to history, exports later, or closes.
 
 ### Failure Recovery
 
@@ -300,8 +301,10 @@ P2 serves advanced or power-user needs after the core experience is stable.
 - Is the unofficial Google translation endpoint stable enough for default use?
 - How often does selected-text translation fail across common macOS apps?
 - Does requiring Screen Recording permission reduce activation?
-- Does history create enough user value to justify storing translated text?
+- Does history create enough user value to justify storing translated text by default?
 - Will users understand API fallback without advanced provider knowledge?
 - How often do migrated `UserDefaults` credentials appear in real installs, and
   do any edge cases remain after Keychain migration?
 - Does the floating popover obstruct the user's working area too often?
+- Which offline translation model, if any, is small and accurate enough to ship
+  without hurting startup time or app size?

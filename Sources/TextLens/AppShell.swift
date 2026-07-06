@@ -9,18 +9,21 @@ final class AppShell: NSObject, NSApplicationDelegate {
     private let translation = TranslationService()
     private let ocr = OCRService()
     private let popover = ResultPopover()
+    private let historyStore = TranslationHistoryStore()
     private let hotKeyCenter = HotKeyCenter()
     private let permissionCenter = PermissionCenter()
     private lazy var selectionTranslator = SelectionTranslator(
         settings: settings,
         translation: translation,
-        popover: popover
+        popover: popover,
+        historyStore: historyStore
     )
     private lazy var screenCaptureTranslator = ScreenCaptureTranslator(
         settings: settings,
         ocr: ocr,
         translation: translation,
-        popover: popover
+        popover: popover,
+        historyStore: historyStore
     )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -40,12 +43,7 @@ final class AppShell: NSObject, NSApplicationDelegate {
 
         item.menu = menu
         statusItem = item
-        hotKeyCenter.registerSelectionHotKey { [weak self] in
-            self?.translateSelection()
-        }
-        hotKeyCenter.registerScreenshotHotKey { [weak self] in
-            self?.screenshotTranslate()
-        }
+        registerHotKeys()
 
         openSettingsOnFirstLaunch()
     }
@@ -73,8 +71,11 @@ final class AppShell: NSObject, NSApplicationDelegate {
             return
         }
 
-        let view = SettingsView(settings: settings)
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 820, height: 520), styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        let view = SettingsView(settings: settings, historyStore: historyStore) { [weak self] in
+            self?.registerHotKeys()
+            self?.updateStatus()
+        }
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 880, height: 620), styleMask: [.titled, .closable], backing: .buffered, defer: false)
         window.title = "TextLens Settings"
         window.isReleasedWhenClosed = false
         window.level = .floating
@@ -92,6 +93,19 @@ final class AppShell: NSObject, NSApplicationDelegate {
 
     private func updateStatus() {
         statusItem?.button?.toolTip = statusText()
+    }
+
+    private func registerHotKeys() {
+        hotKeyCenter.unregisterAll()
+        let selectionRegistered = hotKeyCenter.registerSelectionHotKey(key: settings.selectionHotKey) { [weak self] in
+            self?.translateSelection()
+        }
+        let screenshotRegistered = hotKeyCenter.registerScreenshotHotKey(key: settings.screenshotHotKey) { [weak self] in
+            self?.screenshotTranslate()
+        }
+        if !selectionRegistered || !screenshotRegistered {
+            settings.providerHealth = "Shortcut registration failed. Pick another key in Settings."
+        }
     }
 
     private func openSettingsOnFirstLaunch() {
