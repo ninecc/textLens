@@ -3,17 +3,19 @@ import TextLensCore
 
 final class ResultPopover: NSObject {
     private var window: NSWindow?
+    private var originalText = ""
     private var translatedText = ""
 
-    func show(original: String, translated: String, anchor: CGRect? = nil, backgroundOpacity: Double = 0.9) {
+    func show(original: String, translated: String, anchor: CGRect? = nil, backgroundOpacity: Double = 0.9, isLoading: Bool = false) {
         DispatchQueue.main.async { [weak self] in
-            self?.present(original: original, translated: translated, anchor: anchor, backgroundOpacity: backgroundOpacity)
+            self?.present(original: original, translated: translated, anchor: anchor, backgroundOpacity: backgroundOpacity, isLoading: isLoading)
         }
     }
 
-    private func present(original: String, translated: String, anchor: CGRect?, backgroundOpacity: Double) {
+    private func present(original: String, translated: String, anchor: CGRect?, backgroundOpacity: Double, isLoading: Bool) {
         window?.close()
         window = nil
+        originalText = original
         translatedText = translated
 
         let text = NSTextField(labelWithString: original.isEmpty ? translated : "Original:\n\(original)\n\nTranslation:\n\(translated)")
@@ -21,10 +23,17 @@ final class ResultPopover: NSObject {
         text.lineBreakMode = .byWordWrapping
         text.maximumNumberOfLines = 0
 
-        let copyButton = NSButton(frame: NSRect(x: 12, y: 12, width: 80, height: 24))
-        copyButton.title = "Copy"
-        copyButton.target = self
-        copyButton.action = #selector(copyTranslation)
+        let copyOriginalButton = NSButton(frame: NSRect(x: 12, y: 12, width: 104, height: 24))
+        copyOriginalButton.title = "Copy Original"
+        copyOriginalButton.target = self
+        copyOriginalButton.action = #selector(copyOriginal)
+        copyOriginalButton.isEnabled = !original.isEmpty
+
+        let copyTranslationButton = NSButton(frame: NSRect(x: 124, y: 12, width: 124, height: 24))
+        copyTranslationButton.title = "Copy Translation"
+        copyTranslationButton.target = self
+        copyTranslationButton.action = #selector(copyTranslation)
+        copyTranslationButton.isEnabled = !isLoading && !translated.isEmpty
 
         let closeButton = NSButton(frame: NSRect(x: 308, y: 12, width: 80, height: 24))
         closeButton.title = "Close"
@@ -33,7 +42,8 @@ final class ResultPopover: NSObject {
 
         let content = NSView(frame: NSRect(x: 0, y: 0, width: 400, height: 236))
         content.addSubview(text)
-        content.addSubview(copyButton)
+        content.addSubview(copyOriginalButton)
+        content.addSubview(copyTranslationButton)
         content.addSubview(closeButton)
 
         let point = NSEvent.mouseLocation
@@ -51,6 +61,11 @@ final class ResultPopover: NSObject {
         window.contentView = content
         window.orderFrontRegardless()
         self.window = window
+    }
+
+    @objc private func copyOriginal() {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(originalText, forType: .string)
     }
 
     @objc private func copyTranslation() {

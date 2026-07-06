@@ -88,7 +88,7 @@ final class SelectionTranslator {
             popover.show(original: "", translated: "No text to translate.")
             return
         }
-        popover.show(original: text, translated: "Translating...")
+        popover.show(original: text, translated: "Translating...", isLoading: true)
         Task {
             do {
                 let translated = try await translation.translate(text)

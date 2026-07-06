@@ -49,7 +49,7 @@ final class ScreenCaptureTranslator {
             return
         }
 
-        popover.show(original: "", translated: "Recognizing text...", anchor: anchor, backgroundOpacity: popoverOpacity)
+        popover.show(original: "", translated: "Recognizing text...", anchor: anchor, backgroundOpacity: popoverOpacity, isLoading: true)
         Task {
             do {
                 let text = try await ocr.recognizeText(in: image)
@@ -60,7 +60,7 @@ final class ScreenCaptureTranslator {
                     return
                 }
                 await MainActor.run {
-                    popover.show(original: text, translated: "Translating...", anchor: anchor, backgroundOpacity: popoverOpacity)
+                    popover.show(original: text, translated: "Translating...", anchor: anchor, backgroundOpacity: popoverOpacity, isLoading: true)
                 }
                 let translated = try await translation.translate(text)
                 await MainActor.run {
