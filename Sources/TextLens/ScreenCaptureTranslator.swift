@@ -19,7 +19,11 @@ final class ScreenCaptureTranslator {
     func start() {
         guard CGPreflightScreenCaptureAccess() else {
             CGRequestScreenCaptureAccess()
-            popover.show(original: "", translated: "Screen Recording permission is required.", backgroundOpacity: popoverOpacity)
+            popover.show(
+                original: "",
+                translated: "Enable Screen Recording in TextLens Settings, then try Screenshot Translate again.",
+                backgroundOpacity: popoverOpacity
+            )
             return
         }
 
@@ -44,8 +48,15 @@ final class ScreenCaptureTranslator {
 
     private func translate(region: CGRect, on screen: NSScreen) {
         let anchor = anchorRect(region: region, on: screen)
+        let displayID = screenDisplayID(screen)
         guard let image = capture(region: region, on: screen) else {
-            popover.show(original: "", translated: "Could not capture the selected region.", anchor: anchor, backgroundOpacity: popoverOpacity)
+            popover.show(
+                original: "",
+                translated: "Could not capture the selected region. Check Screen Recording permission, then retry.",
+                anchor: anchor,
+                backgroundOpacity: popoverOpacity,
+                retry: { [weak self] in self?.retry(region: region, displayID: displayID) }
+            )
             return
         }
 
@@ -55,7 +66,13 @@ final class ScreenCaptureTranslator {
                 let text = try await ocr.recognizeText(in: image)
                 guard !text.isEmpty else {
                     await MainActor.run {
-                        popover.show(original: "", translated: "No text recognized.", anchor: anchor, backgroundOpacity: popoverOpacity)
+                        popover.show(
+                            original: "",
+                            translated: "No text recognized. Select a clearer text region, then retry.",
+                            anchor: anchor,
+                            backgroundOpacity: popoverOpacity,
+                            retry: { [weak self] in self?.retry(region: region, displayID: displayID) }
+                        )
                     }
                     return
                 }
@@ -68,10 +85,25 @@ final class ScreenCaptureTranslator {
                 }
             } catch {
                 await MainActor.run {
-                    popover.show(original: "", translated: error.localizedDescription, anchor: anchor, backgroundOpacity: popoverOpacity)
+                    popover.show(
+                        original: "",
+                        translated: error.localizedDescription,
+                        anchor: anchor,
+                        backgroundOpacity: popoverOpacity,
+                        retry: { [weak self] in self?.retry(region: region, displayID: displayID) }
+                    )
                 }
             }
         }
+    }
+
+    private func retry(region: CGRect, displayID: CGDirectDisplayID?) {
+        guard let displayID,
+              let screen = NSScreen.screens.first(where: { screenDisplayID($0) == displayID }) else {
+            start()
+            return
+        }
+        translate(region: region, on: screen)
     }
 
     private func capture(region: CGRect, on screen: NSScreen) -> CGImage? {
@@ -101,5 +133,10 @@ final class ScreenCaptureTranslator {
             width: region.width,
             height: region.height
         )
+    }
+
+    private func screenDisplayID(_ screen: NSScreen) -> CGDirectDisplayID? {
+        (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)
+            .map { CGDirectDisplayID(truncating: $0) }
     }
 }

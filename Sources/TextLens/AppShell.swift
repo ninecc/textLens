@@ -46,6 +46,8 @@ final class AppShell: NSObject, NSApplicationDelegate {
         hotKeyCenter.registerScreenshotHotKey { [weak self] in
             self?.screenshotTranslate()
         }
+
+        openSettingsOnFirstLaunch()
     }
 
     @objc private func translateSelection() {
@@ -90,6 +92,14 @@ final class AppShell: NSObject, NSApplicationDelegate {
 
     private func updateStatus() {
         statusItem?.button?.toolTip = statusText()
+    }
+
+    private func openSettingsOnFirstLaunch() {
+        guard !settings.hasSeenOnboarding else { return }
+        settings.hasSeenOnboarding = true
+        DispatchQueue.main.async { [weak self] in
+            self?.openSettings()
+        }
     }
 
     private func statusText() -> String {

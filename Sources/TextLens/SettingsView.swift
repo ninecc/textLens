@@ -26,10 +26,13 @@ struct SettingsView: View {
     @State private var saved = false
     @State private var apiStatus = ""
     @State private var testingAPI = false
+    @State private var freeProviderStatus = ""
+    @State private var testingFreeProvider = false
 
     private let settings: SettingsStore
     private let saveModel: SettingsSaveModel
     private let translation = TranslationService()
+    private let freeTranslation = FreeTranslationService()
     private let permissionCenter = PermissionCenter()
 
     init(settings: SettingsStore) {
@@ -108,6 +111,27 @@ struct SettingsView: View {
                     }
                     .labelsHidden()
                     .frame(width: 220)
+                }
+
+                formRow("Active Strategy") {
+                    Text(strategySummary)
+                        .foregroundStyle(.secondary)
+                }
+
+                formRow("Fallback Order") {
+                    Text(fallbackOrder)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+
+                HStack(spacing: 12) {
+                    Spacer()
+                        .frame(width: 150)
+                    Button(testingFreeProvider ? "Testing..." : "Test Free Provider") { testFreeProvider() }
+                        .disabled(testingFreeProvider)
+                    Text(freeProviderStatus)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
                 }
 
                 credentialsSection
@@ -280,6 +304,24 @@ struct SettingsView: View {
         }
     }
 
+    private func testFreeProvider() {
+        testingFreeProvider = true
+        freeProviderStatus = ""
+        Task {
+            do {
+                _ = try await freeTranslation.translate(
+                    text: "hello",
+                    targetLanguage: targetLanguage,
+                    config: freeProviderConfig
+                )
+                await MainActor.run { freeProviderStatus = "Free provider available." }
+            } catch {
+                await MainActor.run { freeProviderStatus = error.localizedDescription }
+            }
+            await MainActor.run { testingFreeProvider = false }
+        }
+    }
+
     private func restoreDefaults() {
         settings.resetToDefaults()
         baseURL = settings.baseURL.absoluteString
@@ -294,7 +336,30 @@ struct SettingsView: View {
         useAPIFallback = settings.useAPIFallback
         screenshotPopoverOpacity = settings.screenshotPopoverOpacity
         apiStatus = ""
+        freeProviderStatus = ""
         saved = false
+    }
+
+    private var strategySummary: String {
+        useAPIFallback ? "\(freeTranslationProvider.displayName) first, API fallback enabled" : "\(freeTranslationProvider.displayName) first"
+    }
+
+    private var fallbackOrder: String {
+        let backupProviders = [FreeTranslationProvider.google, .myMemory]
+            .filter { $0 != freeTranslationProvider }
+            .map(\.displayName)
+        let apiFallback = useAPIFallback ? ["API fallback"] : []
+        return ([freeTranslationProvider.displayName] + backupProviders + apiFallback).joined(separator: " > ")
+    }
+
+    private var freeProviderConfig: FreeTranslationService.Config {
+        FreeTranslationService.Config(
+            provider: freeTranslationProvider,
+            youdaoAppID: youdaoAppID,
+            youdaoSecret: youdaoSecret,
+            baiduAppID: baiduAppID,
+            baiduSecret: baiduSecret
+        )
     }
 
     private func clampedOpacity(_ value: Double) -> Double {

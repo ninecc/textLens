@@ -5,18 +5,41 @@ final class ResultPopover: NSObject {
     private var window: NSWindow?
     private var originalText = ""
     private var translatedText = ""
+    private var retryAction: (() -> Void)?
 
-    func show(original: String, translated: String, anchor: CGRect? = nil, backgroundOpacity: Double = 0.9, isLoading: Bool = false) {
+    func show(
+        original: String,
+        translated: String,
+        anchor: CGRect? = nil,
+        backgroundOpacity: Double = 0.9,
+        isLoading: Bool = false,
+        retry: (() -> Void)? = nil
+    ) {
         DispatchQueue.main.async { [weak self] in
-            self?.present(original: original, translated: translated, anchor: anchor, backgroundOpacity: backgroundOpacity, isLoading: isLoading)
+            self?.present(
+                original: original,
+                translated: translated,
+                anchor: anchor,
+                backgroundOpacity: backgroundOpacity,
+                isLoading: isLoading,
+                retry: retry
+            )
         }
     }
 
-    private func present(original: String, translated: String, anchor: CGRect?, backgroundOpacity: Double, isLoading: Bool) {
+    private func present(
+        original: String,
+        translated: String,
+        anchor: CGRect?,
+        backgroundOpacity: Double,
+        isLoading: Bool,
+        retry: (() -> Void)?
+    ) {
         window?.close()
         window = nil
         originalText = original
         translatedText = translated
+        retryAction = retry
 
         let text = NSTextField(labelWithString: original.isEmpty ? translated : "Original:\n\(original)\n\nTranslation:\n\(translated)")
         text.frame = NSRect(x: 12, y: 44, width: 376, height: 180)
@@ -35,7 +58,13 @@ final class ResultPopover: NSObject {
         copyTranslationButton.action = #selector(copyTranslation)
         copyTranslationButton.isEnabled = !isLoading && !translated.isEmpty
 
-        let closeButton = NSButton(frame: NSRect(x: 308, y: 12, width: 80, height: 24))
+        let retryButton = NSButton(frame: NSRect(x: 252, y: 12, width: 56, height: 24))
+        retryButton.title = "Retry"
+        retryButton.target = self
+        retryButton.action = #selector(retryTranslation)
+        retryButton.isEnabled = retry != nil && !isLoading
+
+        let closeButton = NSButton(frame: NSRect(x: 316, y: 12, width: 72, height: 24))
         closeButton.title = "Close"
         closeButton.target = self
         closeButton.action = #selector(close)
@@ -44,6 +73,7 @@ final class ResultPopover: NSObject {
         content.addSubview(text)
         content.addSubview(copyOriginalButton)
         content.addSubview(copyTranslationButton)
+        content.addSubview(retryButton)
         content.addSubview(closeButton)
 
         let point = NSEvent.mouseLocation
@@ -73,8 +103,13 @@ final class ResultPopover: NSObject {
         NSPasteboard.general.setString(translatedText, forType: .string)
     }
 
+    @objc private func retryTranslation() {
+        retryAction?()
+    }
+
     @objc private func close() {
         window?.orderOut(nil)
         window = nil
+        retryAction = nil
     }
 }

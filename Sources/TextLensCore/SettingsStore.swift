@@ -13,6 +13,7 @@ public final class SettingsStore {
         static let apiKey = "apiKey"
         static let useAPIFallback = "useAPIFallback"
         static let screenshotPopoverOpacity = "screenshotPopoverOpacity"
+        static let hasSeenOnboarding = "hasSeenOnboarding"
     }
 
     private let defaults: UserDefaults
@@ -89,6 +90,11 @@ public final class SettingsStore {
         }
     }
 
+    public var hasSeenOnboarding: Bool {
+        get { defaults.object(forKey: Key.hasSeenOnboarding) as? Bool ?? false }
+        set { defaults.set(newValue, forKey: Key.hasSeenOnboarding) }
+    }
+
     public func resetToDefaults() {
         defaults.removeObject(forKey: Key.baseURL)
         defaults.removeObject(forKey: Key.model)
@@ -101,6 +107,7 @@ public final class SettingsStore {
         defaults.removeObject(forKey: Key.apiKey)
         defaults.removeObject(forKey: Key.useAPIFallback)
         defaults.removeObject(forKey: Key.screenshotPopoverOpacity)
+        defaults.removeObject(forKey: Key.hasSeenOnboarding)
         secrets.removeString(forKey: Key.apiKey)
         secrets.removeString(forKey: Key.youdaoSecret)
         secrets.removeString(forKey: Key.baiduSecret)

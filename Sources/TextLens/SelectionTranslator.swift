@@ -18,7 +18,7 @@ final class SelectionTranslator {
 
     func translateSelection() {
         guard accessibilityTrusted(prompt: true) else {
-            popover.show(original: "", translated: "Accessibility permission is required. Enable it, then try Translate Selection again.")
+            popover.show(original: "", translated: "Enable Accessibility in TextLens Settings, then try Translate Selection again.")
             return
         }
 
@@ -97,7 +97,11 @@ final class SelectionTranslator {
                 }
             } catch {
                 await MainActor.run {
-                    popover.show(original: text, translated: error.localizedDescription)
+                    popover.show(
+                        original: text,
+                        translated: error.localizedDescription,
+                        retry: { [weak self] in self?.translate(text: text) }
+                    )
                 }
             }
         }
