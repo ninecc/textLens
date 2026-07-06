@@ -1,6 +1,6 @@
 # TextLens Secure Credentials Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox syntax for tracking.
 
 **Goal:** Store translation credentials in Keychain and make the API fallback settings easier to understand.
 
@@ -36,7 +36,7 @@
 - Create: `Tests/TextLensTests/InMemorySecretStore.swift`
 - Modify: `Sources/TextLensCore/SettingsStore.swift`
 
-- [ ] **Step 1: Write the failing test double and secret storage test**
+- [x] **Step 1: Write the failing test double and secret storage test**
 
 Add this helper:
 
@@ -82,7 +82,7 @@ func testSecretsAreStoredOutsideUserDefaults() {
 }
 ```
 
-- [ ] **Step 2: Run the focused test and verify it fails**
+- [x] **Step 2: Run the focused test and verify it fails**
 
 Run:
 
@@ -92,7 +92,7 @@ swift test --filter SettingsStoreTests/testSecretsAreStoredOutsideUserDefaults
 
 Expected: compile fails because `SecretStore` and `SettingsStore(defaults:secrets:)` do not exist.
 
-- [ ] **Step 3: Add the minimal secret-store interface**
+- [x] **Step 3: Add the minimal secret-store interface**
 
 Add:
 
@@ -151,7 +151,7 @@ public final class KeychainStore: SecretStore {
 }
 ```
 
-- [ ] **Step 4: Inject the secret store into settings**
+- [x] **Step 4: Inject the secret store into settings**
 
 Change `SettingsStore` init and secret properties:
 
@@ -197,7 +197,7 @@ secrets.removeString(forKey: Key.youdaoSecret)
 secrets.removeString(forKey: Key.baiduSecret)
 ```
 
-- [ ] **Step 5: Run the focused test and verify it passes**
+- [x] **Step 5: Run the focused test and verify it passes**
 
 Run:
 
@@ -213,7 +213,7 @@ Expected: pass.
 - Modify: `Tests/TextLensTests/SettingsStoreTests.swift`
 - Modify: `Sources/TextLensCore/SettingsStore.swift`
 
-- [ ] **Step 1: Write the failing migration test**
+- [x] **Step 1: Write the failing migration test**
 
 Add:
 
@@ -230,7 +230,7 @@ func testReadsAndMigratesExistingUserDefaultsSecret() {
 }
 ```
 
-- [ ] **Step 2: Run the focused test and verify it fails**
+- [x] **Step 2: Run the focused test and verify it fails**
 
 Run:
 
@@ -240,11 +240,11 @@ swift test --filter SettingsStoreTests/testReadsAndMigratesExistingUserDefaultsS
 
 Expected: fail until `migratedSecret(forKey:)` is wired into `apiKey`.
 
-- [ ] **Step 3: Implement migration if Task 1 did not already cover it**
+- [x] **Step 3: Implement migration if Task 1 did not already cover it**
 
 Use the `migratedSecret(forKey:)` helper from Task 1 for all three secret fields.
 
-- [ ] **Step 4: Run settings tests**
+- [x] **Step 4: Run settings tests**
 
 Run:
 
@@ -260,7 +260,7 @@ Expected: all `SettingsStoreTests` pass.
 - Modify: `Tests/TextLensTests/SettingsStoreTests.swift`
 - Modify: `Sources/TextLensCore/SettingsStore.swift`
 
-- [ ] **Step 1: Write the failing reset test**
+- [x] **Step 1: Write the failing reset test**
 
 Add:
 
@@ -282,7 +282,7 @@ func testResetClearsSecrets() {
 }
 ```
 
-- [ ] **Step 2: Run the focused test and verify it fails**
+- [x] **Step 2: Run the focused test and verify it fails**
 
 Run:
 
@@ -292,11 +292,11 @@ swift test --filter SettingsStoreTests/testResetClearsSecrets
 
 Expected: fail until reset removes Keychain-backed secrets.
 
-- [ ] **Step 3: Implement reset secret removal**
+- [x] **Step 3: Implement reset secret removal**
 
 Add the three `secrets.removeString` calls to `resetToDefaults()`.
 
-- [ ] **Step 4: Run settings tests**
+- [x] **Step 4: Run settings tests**
 
 Run:
 
@@ -311,7 +311,7 @@ Expected: all `SettingsStoreTests` pass.
 **Files:**
 - Modify: `Sources/TextLens/SettingsView.swift`
 
-- [ ] **Step 1: Make the smallest UI text change**
+- [x] **Step 1: Make the smallest UI text change**
 
 Change:
 
@@ -337,7 +337,7 @@ to:
 formRow("Use API when free translation fails") {
 ```
 
-- [ ] **Step 2: Build**
+- [x] **Step 2: Build**
 
 Run:
 
@@ -352,7 +352,7 @@ Expected: build succeeds.
 **Files:**
 - Verify all touched files.
 
-- [ ] **Step 1: Run all tests**
+- [x] **Step 1: Run all tests**
 
 Run:
 
@@ -362,7 +362,7 @@ swift test
 
 Expected: all tests pass.
 
-- [ ] **Step 2: Run checks**
+- [x] **Step 2: Run checks**
 
 Run:
 
@@ -372,7 +372,7 @@ swift run TextLensChecks
 
 Expected: `ok`.
 
-- [ ] **Step 3: Review git diff**
+- [x] **Step 3: Review git diff**
 
 Run:
 
@@ -387,3 +387,10 @@ Expected: only the docs from the previous step plus this secure-credentials iter
 - Spec coverage: covers P0 secure credential storage and part of settings clarity. It intentionally does not cover onboarding, permission center, result popover, or menu bar status.
 - Placeholder scan: no placeholders.
 - Type consistency: `SecretStore`, `KeychainStore`, and injected `SettingsStore(defaults:secrets:)` are defined before use.
+
+## Completion Record
+
+- Completed in commit `efc64ac feat: store translation secrets in keychain`.
+- Verified with `swift build --product TextLens`.
+- Verified with `swift test`: 24 tests, 0 failures.
+- Verified with `swift run TextLensChecks`: `ok`.
