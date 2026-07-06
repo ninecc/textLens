@@ -10,6 +10,7 @@ final class AppShell: NSObject, NSApplicationDelegate {
     private let ocr = OCRService()
     private let popover = ResultPopover()
     private let hotKeyCenter = HotKeyCenter()
+    private let permissionCenter = PermissionCenter()
     private lazy var selectionTranslator = SelectionTranslator(
         settings: settings,
         translation: translation,
@@ -26,7 +27,7 @@ final class AppShell: NSObject, NSApplicationDelegate {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         item.button?.image = .textLensStatusIcon
         item.button?.imagePosition = .imageOnly
-        item.button?.toolTip = "TextLens"
+        item.button?.toolTip = statusText()
 
         let menu = NSMenu()
         menu.addItem(NSMenuItem(title: "Translate Selection", action: #selector(translateSelection), keyEquivalent: ""))
@@ -35,6 +36,7 @@ final class AppShell: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Settings", action: #selector(openSettings), keyEquivalent: ","))
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
+        menu.delegate = self
 
         item.menu = menu
         statusItem = item
@@ -47,18 +49,22 @@ final class AppShell: NSObject, NSApplicationDelegate {
     }
 
     @objc private func translateSelection() {
+        updateStatus()
         selectionTranslator.translateSelection()
     }
 
     @objc private func translateClipboard() {
+        updateStatus()
         selectionTranslator.translateClipboard()
     }
 
     @objc private func screenshotTranslate() {
+        updateStatus()
         screenCaptureTranslator.start()
     }
 
     @objc private func openSettings() {
+        updateStatus()
         if let settingsWindow {
             NSApp.activate(ignoringOtherApps: true)
             settingsWindow.makeKeyAndOrderFront(nil)
@@ -80,6 +86,29 @@ final class AppShell: NSObject, NSApplicationDelegate {
 
     @objc private func quit() {
         NSApplication.shared.terminate(nil)
+    }
+
+    private func updateStatus() {
+        statusItem?.button?.toolTip = statusText()
+    }
+
+    private func statusText() -> String {
+        if !permissionCenter.accessibility.isGranted || !permissionCenter.screenRecording.isGranted {
+            return "TextLens: permissions missing"
+        }
+        if settings.freeTranslationProvider == .baidu && (settings.baiduAppID.isEmpty || settings.baiduSecret.isEmpty) {
+            return "TextLens: Baidu credentials missing"
+        }
+        if settings.freeTranslationProvider == .youdao && (settings.youdaoAppID.isEmpty || settings.youdaoSecret.isEmpty) {
+            return "TextLens: Youdao credentials missing"
+        }
+        return "TextLens: ready"
+    }
+}
+
+extension AppShell: NSMenuDelegate {
+    func menuWillOpen(_ menu: NSMenu) {
+        updateStatus()
     }
 }
 
