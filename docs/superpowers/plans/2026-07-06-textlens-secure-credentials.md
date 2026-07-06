@@ -377,7 +377,7 @@ Expected: `ok`.
 Run:
 
 ```bash
-git diff -- README.md docs/product-experience-report.md docs/superpowers/plans/2026-07-06-textlens-secure-credentials.md Sources/TextLensCore/KeychainStore.swift Sources/TextLensCore/SettingsStore.swift Sources/TextLens/SettingsView.swift Tests/TextLensTests/InMemorySecretStore.swift Tests/TextLensTests/SettingsStoreTests.swift
+git diff -- README.md docs/superpowers/specs/2026-07-06-textlens-product-experience-report.md docs/superpowers/plans/2026-07-06-textlens-secure-credentials.md Sources/TextLensCore/KeychainStore.swift Sources/TextLensCore/SettingsStore.swift Sources/TextLens/SettingsView.swift Tests/TextLensTests/InMemorySecretStore.swift Tests/TextLensTests/SettingsStoreTests.swift
 ```
 
 Expected: only the docs from the previous step plus this secure-credentials iteration.

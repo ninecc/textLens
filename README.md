@@ -39,7 +39,7 @@ swift run TextLensChecks
 
 - [macOS design spec](docs/superpowers/specs/2026-07-03-textlens-macos-design.md)
 - [macOS implementation plan](docs/superpowers/plans/2026-07-03-textlens-macos-implementation.md)
-- [product experience report and next-stage requirements](docs/product-experience-report.md)
+- [product experience report and next-stage requirements](docs/superpowers/specs/2026-07-06-textlens-product-experience-report.md)
 
 ## Next Priorities
 
