@@ -120,11 +120,11 @@ final class AppShell: NSObject, NSApplicationDelegate {
         if !permissionCenter.accessibility.isGranted || !permissionCenter.screenRecording.isGranted {
             return "TextLens: permissions missing"
         }
-        if settings.freeTranslationProvider == .baidu && (settings.baiduAppID.isEmpty || settings.baiduSecret.isEmpty) {
-            return "TextLens: Baidu credentials missing"
+        if settings.freeTranslationProvider == .baidu && settings.baiduAppID.isEmpty {
+            return "TextLens: Baidu app ID missing"
         }
-        if settings.freeTranslationProvider == .youdao && (settings.youdaoAppID.isEmpty || settings.youdaoSecret.isEmpty) {
-            return "TextLens: Youdao credentials missing"
+        if settings.freeTranslationProvider == .youdao && settings.youdaoAppID.isEmpty {
+            return "TextLens: Youdao app ID missing"
         }
         return "TextLens: ready"
     }

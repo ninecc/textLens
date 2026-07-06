@@ -81,6 +81,7 @@ final class ScreenCaptureTranslator {
                 guard !editedText.isEmpty else { return }
                 await MainActor.run {
                     popover.show(original: editedText, translated: "Translating...", anchor: anchor, backgroundOpacity: popoverOpacity, isLoading: true)
+                    showKeychainHintIfNeeded(original: editedText, anchor: anchor)
                 }
                 let translated = try await translation.translate(editedText)
                 await MainActor.run {
@@ -132,6 +133,19 @@ final class ScreenCaptureTranslator {
         return alert.runModal() == .alertFirstButtonReturn
             ? textView.string.trimmingCharacters(in: .whitespacesAndNewlines)
             : nil
+    }
+
+    private func showKeychainHintIfNeeded(original: String, anchor: CGRect) {
+        guard settings.freeTranslationProvider == .youdao || settings.freeTranslationProvider == .baidu || settings.useAPIFallback else {
+            return
+        }
+        popover.show(
+            original: original,
+            translated: "macOS may ask for Keychain access to read your saved translation secret.",
+            anchor: anchor,
+            backgroundOpacity: popoverOpacity,
+            isLoading: true
+        )
     }
 
     private func capture(region: CGRect, on screen: NSScreen) -> CGImage? {

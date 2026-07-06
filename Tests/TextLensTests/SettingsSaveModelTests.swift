@@ -36,4 +36,34 @@ final class SettingsSaveModelTests: XCTestCase {
         XCTAssertFalse(store.useAPIFallback)
         XCTAssertEqual(store.screenshotPopoverOpacity, 0.4)
     }
+
+    func testSaveDoesNotClearExistingSecretsWhenFieldsAreBlank() {
+        let defaults = UserDefaults(suiteName: UUID().uuidString)!
+        let store = SettingsStore(defaults: defaults, secrets: InMemorySecretStore())
+        let model = SettingsSaveModel(settings: store)
+
+        store.youdaoSecret = "old-youdao"
+        store.baiduSecret = "old-baidu"
+        store.apiKey = "old-api"
+
+        _ = model.save(
+            SettingsDraft(
+                baseURL: "https://example.com/v1/chat/completions",
+                model: "model",
+                targetLanguage: "French",
+                freeTranslationProvider: .google,
+                youdaoAppID: "",
+                youdaoSecret: "",
+                baiduAppID: "",
+                baiduSecret: "",
+                apiKey: "",
+                useAPIFallback: false,
+                screenshotPopoverOpacity: 0.4
+            )
+        )
+
+        XCTAssertEqual(store.youdaoSecret, "old-youdao")
+        XCTAssertEqual(store.baiduSecret, "old-baidu")
+        XCTAssertEqual(store.apiKey, "old-api")
+    }
 }

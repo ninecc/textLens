@@ -56,10 +56,16 @@ public final class SettingsSaveModel {
         settings.targetLanguage = draft.targetLanguage
         settings.freeTranslationProvider = draft.freeTranslationProvider
         settings.youdaoAppID = draft.youdaoAppID
-        settings.youdaoSecret = draft.youdaoSecret
+        if !draft.youdaoSecret.isEmpty {
+            settings.youdaoSecret = draft.youdaoSecret
+        }
         settings.baiduAppID = draft.baiduAppID
-        settings.baiduSecret = draft.baiduSecret
-        settings.apiKey = draft.apiKey
+        if !draft.baiduSecret.isEmpty {
+            settings.baiduSecret = draft.baiduSecret
+        }
+        if !draft.apiKey.isEmpty {
+            settings.apiKey = draft.apiKey
+        }
         settings.useAPIFallback = draft.useAPIFallback
         settings.screenshotPopoverOpacity = draft.screenshotPopoverOpacity
         return true

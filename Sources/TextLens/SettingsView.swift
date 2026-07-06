@@ -59,10 +59,10 @@ struct SettingsView: View {
         _targetLanguage = State(initialValue: settings.targetLanguage)
         _freeTranslationProvider = State(initialValue: settings.freeTranslationProvider)
         _youdaoAppID = State(initialValue: settings.youdaoAppID)
-        _youdaoSecret = State(initialValue: settings.youdaoSecret)
+        _youdaoSecret = State(initialValue: "")
         _baiduAppID = State(initialValue: settings.baiduAppID)
-        _baiduSecret = State(initialValue: settings.baiduSecret)
-        _apiKey = State(initialValue: settings.apiKey)
+        _baiduSecret = State(initialValue: "")
+        _apiKey = State(initialValue: "")
         _useAPIFallback = State(initialValue: settings.useAPIFallback)
         _screenshotPopoverOpacity = State(initialValue: settings.screenshotPopoverOpacity)
         _selectionHotKey = State(initialValue: settings.selectionHotKey)
@@ -267,6 +267,11 @@ struct SettingsView: View {
                     SecureField("API Key", text: $apiKey)
                         .textFieldStyle(.roundedBorder)
                 }
+                formRow("Keychain Access") {
+                    Text("Leave blank to keep the saved key. macOS may ask for Keychain access when API fallback is used.")
+                        .foregroundStyle(.secondary)
+                        .lineLimit(3)
+                }
                 formRow("Model") {
                     TextField("Model", text: $model)
                         .textFieldStyle(.roundedBorder)
@@ -299,6 +304,11 @@ struct SettingsView: View {
                 SecureField("Baidu Secret", text: $baiduSecret)
                     .textFieldStyle(.roundedBorder)
             }
+            formRow("Keychain Access") {
+                Text("Leave blank to keep the saved secret. macOS may ask for Keychain access when Baidu is used.")
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
+            }
         } else if freeTranslationProvider == .youdao {
             Divider()
                 .padding(.vertical, 8)
@@ -311,6 +321,11 @@ struct SettingsView: View {
             formRow("Youdao Secret") {
                 SecureField("Youdao Secret", text: $youdaoSecret)
                     .textFieldStyle(.roundedBorder)
+            }
+            formRow("Keychain Access") {
+                Text("Leave blank to keep the saved secret. macOS may ask for Keychain access when Youdao is used.")
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
             }
         }
     }
@@ -455,10 +470,10 @@ struct SettingsView: View {
         targetLanguage = settings.targetLanguage
         freeTranslationProvider = settings.freeTranslationProvider
         youdaoAppID = settings.youdaoAppID
-        youdaoSecret = settings.youdaoSecret
+        youdaoSecret = ""
         baiduAppID = settings.baiduAppID
-        baiduSecret = settings.baiduSecret
-        apiKey = settings.apiKey
+        baiduSecret = ""
+        apiKey = ""
         useAPIFallback = settings.useAPIFallback
         screenshotPopoverOpacity = settings.screenshotPopoverOpacity
         selectionHotKey = settings.selectionHotKey

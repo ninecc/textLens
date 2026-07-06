@@ -34,31 +34,40 @@ final class TranslationRunner {
             }
         }
 
-        guard settings.useAPIFallback, !settings.apiKey.isEmpty else {
+        guard settings.useAPIFallback else {
             throw Error.freeTranslationFailed(freeError?.localizedDescription ?? "No free provider was available.")
+        }
+        let apiKey = settings.apiKey
+        guard !apiKey.isEmpty else {
+            throw Error.freeTranslationFailed("API fallback needs an API key. Open Settings and enter one.")
         }
 
         let translated = try await api.translate(
             text: text,
             targetLanguage: settings.targetLanguage,
-            config: .init(baseURL: settings.baseURL, apiKey: settings.apiKey, model: settings.model)
+            config: .init(baseURL: settings.baseURL, apiKey: apiKey, model: settings.model)
         )
         return finish(translated, provider: "API fallback")
     }
 
     private func freeConfigs() -> [FreeTranslationService.Config] {
-        let selected = FreeTranslationService.Config(
-            provider: settings.freeTranslationProvider,
-            youdaoAppID: settings.youdaoAppID,
-            youdaoSecret: settings.youdaoSecret,
-            baiduAppID: settings.baiduAppID,
-            baiduSecret: settings.baiduSecret
-        )
+        let selected = config(for: settings.freeTranslationProvider)
 
         let backupProviders: [FreeTranslationProvider] = [.google, .myMemory]
             .filter { $0 != settings.freeTranslationProvider }
 
         return [selected] + backupProviders.map { .init(provider: $0) }
+    }
+
+    private func config(for provider: FreeTranslationProvider) -> FreeTranslationService.Config {
+        switch provider {
+        case .youdao:
+            return .init(provider: provider, youdaoAppID: settings.youdaoAppID, youdaoSecret: settings.youdaoSecret)
+        case .baidu:
+            return .init(provider: provider, baiduAppID: settings.baiduAppID, baiduSecret: settings.baiduSecret)
+        case .google, .myMemory:
+            return .init(provider: provider)
+        }
     }
 
     private func finish(_ translated: String, provider: String) -> String {

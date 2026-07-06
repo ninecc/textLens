@@ -91,6 +91,7 @@ final class SelectionTranslator {
             return
         }
         popover.show(original: text, translated: "Translating...", isLoading: true)
+        showKeychainHintIfNeeded(original: text)
         Task {
             do {
                 let translated = try await translation.translate(text)
@@ -108,5 +109,16 @@ final class SelectionTranslator {
                 }
             }
         }
+    }
+
+    private func showKeychainHintIfNeeded(original: String) {
+        guard settings.freeTranslationProvider == .youdao || settings.freeTranslationProvider == .baidu || settings.useAPIFallback else {
+            return
+        }
+        popover.show(
+            original: original,
+            translated: "macOS may ask for Keychain access to read your saved translation secret.",
+            isLoading: true
+        )
     }
 }
