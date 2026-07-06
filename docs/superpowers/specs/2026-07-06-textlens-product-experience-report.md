@@ -35,10 +35,10 @@ chat screenshots, or video subtitles.
 The menu actions are simple and fit a lightweight utility. Screenshot translation
 has a clear drag-selection interaction and an `Esc to cancel` hint.
 
-The main weakness is first-time setup. Users are not guided through Accessibility
-permission, Screen Recording permission, translation provider selection, or API
-fallback. Settings are functional, but the relationship between free providers
-and API fallback is not obvious.
+First-time setup now opens Settings on first launch and exposes permission
+status, target language, active strategy, fallback order, and test actions. A
+dedicated wizard would still be smoother, but the required setup steps are now
+visible in one place.
 
 ### Efficiency
 
@@ -56,13 +56,15 @@ The MVP flow is complete: selection translation, clipboard translation,
 screenshot OCR translation, settings, free translation, API fallback, and
 floating results all exist.
 
-Automated checks passed during review:
+Automated checks passed after the P0 iteration:
 
-- `swift test`: 21 tests passed
+- `swift build --product TextLens`: passed
+- `swift test`: 26 tests passed
 - `swift run TextLensChecks`: `ok`
 
-The result popover is still basic. It supports copy and close, but not retry,
-loading state, long-text expansion, history, or rich error recovery.
+The result popover now supports loading state, retry, copy original, copy
+translation, and close. Long-text expansion and history remain next-stage
+workflow improvements.
 
 ## 3. Typical Use Cases
 
@@ -86,14 +88,14 @@ loading state, long-text expansion, history, or rich error recovery.
 
 ### Interaction
 
-- No first-run onboarding.
+- First launch opens Settings so users can complete permissions, language, and
+  translation source setup.
 - Menu bar icon is abstract and may be hard to discover.
-- Missing visible permission status in settings.
-- Result popover has limited controls: copy and close only.
+- Result popover controls cover retry, copy, and close; an expanded long-text
+  view is still missing.
 
 ### Function
 
-- No retry action in the result popover.
 - No translation history.
 - No custom shortcuts.
 - No editable OCR text before translation.
@@ -108,21 +110,20 @@ loading state, long-text expansion, history, or rich error recovery.
 
 ### Information Architecture
 
-- `Free Provider`, provider credentials, `Use API fallback`, API key, base URL,
-  and model are split across settings panes. Users must infer the actual
-  translation strategy.
+- The Translation pane now shows active strategy and fallback order. API
+  credential details still live in the API Fallback pane to keep secret fields
+  separated.
 
 ### Copywriting
 
-- Error messages are technically accurate but not action-oriented enough.
-- Users need messages like "Enable Screen Recording", "Open Settings", or
-  "Add API key to use fallback".
+- Permission and common failure messages now point users toward Settings,
+  permission fixes, or retry. Provider-specific network errors still depend on
+  upstream error quality.
 
 ### Security
 
-- The existing design document says API keys should be stored in Keychain.
-  Current implementation stores API keys and provider secrets through
-  `UserDefaults`, which should be fixed before broader distribution.
+- API keys and provider secrets are stored in Keychain, with migration from
+  existing `UserDefaults` values.
 
 ## 6. User Value Judgment
 
@@ -130,20 +131,21 @@ TextLens already provides clear value for quick, temporary translation. The
 screenshot OCR flow is especially valuable because it covers content that normal
 copy-based translation tools cannot handle.
 
-The product is currently best described as a usable MVP. It can satisfy core
-needs, but daily reliability depends on better onboarding, clearer settings,
-secure credential storage, stronger error recovery, and result management.
+The product has moved beyond the riskiest MVP gaps: onboarding visibility,
+settings clarity, secure credential storage, and basic error recovery are now
+covered. Daily retention now depends more on result management, history,
+customization, and long-text workflows.
 
 ## 7. Improvement Suggestions
 
 ### P0
 
-1. Add first-run onboarding for permissions, target language, and translation source.
-2. Store API keys and provider secrets in Keychain.
-3. Merge translation source settings into one clear strategy section.
-4. Add loading, retry, copy original, and copy translation states to the result popover.
-5. Add permission status and direct System Settings links for Accessibility and Screen Recording.
-6. Rewrite error messages into actionable user guidance.
+1. Done: first launch opens Settings for permissions, target language, and translation source setup.
+2. Done: API keys and provider secrets are stored in Keychain.
+3. Done: Translation settings show active strategy, fallback order, and provider tests.
+4. Done: result popover supports loading, retry, copy original, and copy translation.
+5. Done: Settings shows permission status and direct System Settings links.
+6. Done: core permission, OCR, capture, and translation failures use actionable guidance.
 
 ### P1
 
@@ -165,9 +167,10 @@ secure credential storage, stronger error recovery, and result management.
 
 ## 1. Goal
 
-Move TextLens from a usable MVP to a reliable daily macOS translation utility.
-The next stage should focus on onboarding, configuration clarity, credential
-security, error recovery, and result usability.
+Move TextLens from a reliable basic utility to a daily macOS translation
+workflow. P0 trust and setup work is complete; the next stage should focus on
+history, shortcut customization, OCR correction, long-text handling, and
+provider reliability visibility.
 
 ## 2. Target Users And Core Scenarios
 
@@ -182,41 +185,47 @@ security, error recovery, and result usability.
 - Select text in any app and translate it immediately.
 - Select a screenshot region and translate text inside it.
 - Understand and recover from permission, OCR, network, or API failures.
-- Complete first-use setup within two minutes.
+- Complete first-use setup within two minutes, then reuse the tool daily with
+  minimal repeated configuration.
 
 ## 3. Functional Requirements
 
 ### P0
 
+Status: completed in the 2026-07-06 P0 iteration.
+
 - First-run onboarding
-  - Show Accessibility permission status.
-  - Show Screen Recording permission status.
-  - Show target language.
-  - Show active translation strategy.
-  - Provide a test translation action.
+  - Done: first launch opens Settings.
+  - Done: Settings shows Accessibility permission status.
+  - Done: Settings shows Screen Recording permission status.
+  - Done: Settings shows target language.
+  - Done: Settings shows active translation strategy.
+  - Done: Settings provides free-provider and API test actions.
 - Permission center
-  - Detect Accessibility and Screen Recording status.
-  - Open the relevant macOS System Settings pane.
+  - Done: detect Accessibility and Screen Recording status.
+  - Done: open the relevant macOS System Settings pane.
 - Secure credential storage
-  - Store API key, Baidu secret, and Youdao secret in Keychain.
-  - Migrate existing values from `UserDefaults` when present.
+  - Done: store API key, Baidu secret, and Youdao secret in Keychain.
+  - Done: migrate existing values from `UserDefaults` when present.
 - Translation strategy settings
-  - Show selected free provider.
-  - Show fallback order.
-  - Show whether API fallback is enabled.
-  - Test selected provider and API fallback.
+  - Done: show selected free provider.
+  - Done: show fallback order.
+  - Done: show whether API fallback is enabled.
+  - Done: test selected provider and API fallback.
 - Result popover upgrade
-  - Loading state.
-  - Retry action.
-  - Copy original.
-  - Copy translation.
-  - Actionable error states.
+  - Done: loading state.
+  - Done: retry action.
+  - Done: copy original.
+  - Done: copy translation.
+  - Done: actionable error states.
 - Menu bar status
-  - Ready.
-  - Permission missing.
-  - Translation source not configured.
+  - Done: ready.
+  - Done: permission missing.
+  - Done: translation source not configured.
 
 ### P1
+
+Status: next implementation backlog.
 
 - Local translation history
   - Keep the latest 20 results by default.
@@ -235,6 +244,8 @@ security, error recovery, and result usability.
 
 ### P2
 
+Status: later research and power-user backlog.
+
 - Glossary support.
 - Full multi-display region selection.
 - Translation quality comparison between providers.
@@ -251,7 +262,7 @@ P2 serves advanced or power-user needs after the core experience is stable.
 ### First Use
 
 1. User launches TextLens.
-2. TextLens opens onboarding or marks setup status from the menu.
+2. TextLens opens Settings for setup status and required configuration.
 3. User grants required permissions.
 4. User chooses target language.
 5. User keeps the default free provider or configures API fallback.
@@ -265,7 +276,7 @@ P2 serves advanced or power-user needs after the core experience is stable.
 3. User drags a region.
 4. TextLens shows OCR and translation progress.
 5. TextLens displays original and translated text.
-6. User copies, retries, expands, saves to history, or closes.
+6. User copies, retries, or closes. Expanded viewing and history are P1 work.
 
 ### Failure Recovery
 
@@ -291,5 +302,6 @@ P2 serves advanced or power-user needs after the core experience is stable.
 - Does requiring Screen Recording permission reduce activation?
 - Does history create enough user value to justify storing translated text?
 - Will users understand API fallback without advanced provider knowledge?
-- How should existing credentials be migrated from `UserDefaults` to Keychain?
+- How often do migrated `UserDefaults` credentials appear in real installs, and
+  do any edge cases remain after Keychain migration?
 - Does the floating popover obstruct the user's working area too often?
