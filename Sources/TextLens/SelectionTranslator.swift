@@ -15,7 +15,7 @@ final class SelectionTranslator {
     }
 
     func translateClipboard() {
-        translate(text: NSPasteboard.general.string(forType: .string) ?? "")
+        translateText(NSPasteboard.general.string(forType: .string) ?? "")
     }
 
     func translateSelection() {
@@ -25,7 +25,7 @@ final class SelectionTranslator {
         }
 
         if let text = SelectionTextResolver.resolve(accessibilityText: selectedText, copiedText: copySelectedText) {
-            translate(text: text)
+            translateText(text)
         } else {
             popover.show(original: "", translated: "Could not read selection. Copy text, then use Translate Clipboard.")
         }
@@ -84,7 +84,7 @@ final class SelectionTranslator {
         }
     }
 
-    private func translate(text: String) {
+    func translateText(_ text: String) {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else {
             popover.show(original: "", translated: "No text to translate.")
@@ -96,15 +96,20 @@ final class SelectionTranslator {
             do {
                 let translated = try await translation.translate(text)
                 await MainActor.run {
-                    historyStore.add(original: text, translated: translated)
-                    popover.show(original: text, translated: translated)
+                    let item = historyStore.add(original: text, translated: translated)
+                    popover.show(
+                        original: text,
+                        translated: translated,
+                        retry: { [weak self] in self?.translateText(text) },
+                        favorite: { [weak historyStore] in _ = historyStore?.toggleFavorite(id: item.id) }
+                    )
                 }
             } catch {
                 await MainActor.run {
                     popover.show(
                         original: text,
                         translated: error.localizedDescription,
-                        retry: { [weak self] in self?.translate(text: text) }
+                        retry: { [weak self] in self?.translateText(text) }
                     )
                 }
             }

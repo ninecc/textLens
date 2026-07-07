@@ -7,6 +7,7 @@ final class ResultPopover: NSObject {
     private var originalText = ""
     private var translatedText = ""
     private var retryAction: (() -> Void)?
+    private var favoriteAction: (() -> Void)?
 
     func show(
         original: String,
@@ -14,7 +15,8 @@ final class ResultPopover: NSObject {
         anchor: CGRect? = nil,
         backgroundOpacity: Double = 0.9,
         isLoading: Bool = false,
-        retry: (() -> Void)? = nil
+        retry: (() -> Void)? = nil,
+        favorite: (() -> Void)? = nil
     ) {
         DispatchQueue.main.async { [weak self] in
             self?.present(
@@ -23,7 +25,8 @@ final class ResultPopover: NSObject {
                 anchor: anchor,
                 backgroundOpacity: backgroundOpacity,
                 isLoading: isLoading,
-                retry: retry
+                retry: retry,
+                favorite: favorite
             )
         }
     }
@@ -34,13 +37,15 @@ final class ResultPopover: NSObject {
         anchor: CGRect?,
         backgroundOpacity: Double,
         isLoading: Bool,
-        retry: (() -> Void)?
+        retry: (() -> Void)?,
+        favorite: (() -> Void)?
     ) {
         window?.close()
         window = nil
         originalText = original
         translatedText = translated
         retryAction = retry
+        favoriteAction = favorite
 
         let text = NSTextField(labelWithString: original.isEmpty ? translated : "Original:\n\(original)\n\nTranslation:\n\(translated)")
         text.frame = NSRect(x: 12, y: 44, width: 376, height: 180)
@@ -117,25 +122,57 @@ final class ResultPopover: NSObject {
 
     @objc private func expand() {
         expandedWindow?.close()
-        let content = NSTextView(frame: NSRect(x: 0, y: 0, width: 620, height: 420))
-        content.string = originalText.isEmpty ? translatedText : "Original:\n\(originalText)\n\nTranslation:\n\(translatedText)"
-        content.isEditable = false
+        let content = NSView(frame: NSRect(x: 0, y: 0, width: 680, height: 500))
 
-        let scrollView = NSScrollView(frame: content.frame)
-        scrollView.documentView = content
+        let textView = NSTextView(frame: NSRect(x: 16, y: 56, width: 648, height: 428))
+        textView.string = originalText.isEmpty ? translatedText : "Original:\n\(originalText)\n\nTranslation:\n\(translatedText)"
+        textView.isEditable = false
+        textView.isRichText = false
+        textView.textContainerInset = NSSize(width: 10, height: 10)
+
+        let scrollView = NSScrollView(frame: textView.frame)
+        scrollView.documentView = textView
         scrollView.hasVerticalScroller = true
+        scrollView.hasHorizontalScroller = false
 
-        let window = NSWindow(contentRect: scrollView.frame, styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+        let copyButton = NSButton(frame: NSRect(x: 16, y: 16, width: 80, height: 28))
+        copyButton.title = "Copy All"
+        copyButton.target = self
+        copyButton.action = #selector(copyTranslation)
+
+        let retryButton = NSButton(frame: NSRect(x: 104, y: 16, width: 64, height: 28))
+        retryButton.title = "Retry"
+        retryButton.target = self
+        retryButton.action = #selector(retryTranslation)
+        retryButton.isEnabled = retryAction != nil
+
+        let favoriteButton = NSButton(frame: NSRect(x: 176, y: 16, width: 80, height: 28))
+        favoriteButton.title = "Favorite"
+        favoriteButton.target = self
+        favoriteButton.action = #selector(favoriteResult)
+        favoriteButton.isEnabled = favoriteAction != nil
+
+        content.addSubview(scrollView)
+        content.addSubview(copyButton)
+        content.addSubview(retryButton)
+        content.addSubview(favoriteButton)
+
+        let window = NSWindow(contentRect: content.frame, styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         window.title = "TextLens Result"
-        window.contentView = scrollView
+        window.contentView = content
         window.center()
         window.makeKeyAndOrderFront(nil)
         expandedWindow = window
+    }
+
+    @objc private func favoriteResult() {
+        favoriteAction?()
     }
 
     @objc private func close() {
         window?.orderOut(nil)
         window = nil
         retryAction = nil
+        favoriteAction = nil
     }
 }

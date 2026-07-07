@@ -85,8 +85,15 @@ final class ScreenCaptureTranslator {
                 }
                 let translated = try await translation.translate(editedText)
                 await MainActor.run {
-                    historyStore.add(original: editedText, translated: translated)
-                    popover.show(original: editedText, translated: translated, anchor: anchor, backgroundOpacity: popoverOpacity)
+                    let item = historyStore.add(original: editedText, translated: translated)
+                    popover.show(
+                        original: editedText,
+                        translated: translated,
+                        anchor: anchor,
+                        backgroundOpacity: popoverOpacity,
+                        retry: { [weak self] in self?.retry(region: region, displayID: displayID) },
+                        favorite: { [weak historyStore] in _ = historyStore?.toggleFavorite(id: item.id) }
+                    )
                 }
             } catch {
                 await MainActor.run {
