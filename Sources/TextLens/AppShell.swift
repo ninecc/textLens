@@ -151,7 +151,6 @@ final class AppShell: NSObject, NSApplicationDelegate {
 
     private func openSettingsOnFirstLaunch() {
         guard !settings.hasSeenOnboarding else { return }
-        settings.hasSeenOnboarding = true
         DispatchQueue.main.async { [weak self] in
             self?.openSettings()
         }

@@ -42,6 +42,9 @@ struct SettingsView: View {
     @State private var testingFreeProvider = false
     @State private var comparisonStatus = ""
     @State private var testingComparison = false
+    @State private var showingSetupGuide: Bool
+    @State private var skippedSetupPermissions = false
+    @State private var testedSetupTranslationPath = false
 
     private let settings: SettingsStore
     private let historyStore: TranslationHistoryStore
@@ -72,32 +75,19 @@ struct SettingsView: View {
         _historyEnabled = State(initialValue: historyStore.isEnabled)
         _historyItems = State(initialValue: historyStore.items)
         _glossaryText = State(initialValue: settings.glossaryText)
+        _showingSetupGuide = State(initialValue: !settings.hasSeenOnboarding)
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            List(Pane.allCases, selection: $selectedPane) { pane in
-                Text(pane.rawValue)
-                    .tag(pane)
-                    .padding(.vertical, 4)
+        Group {
+            if showingSetupGuide {
+                setupGuide
+                    .padding(24)
+                    .frame(width: 720, height: 520)
+            } else {
+                settingsBody
             }
-            .listStyle(.sidebar)
-            .frame(width: 180)
-
-            Divider()
-
-            VStack(alignment: .leading, spacing: 0) {
-                content
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-
-                Divider()
-
-                actionsSection
-                    .padding(.top, 16)
-            }
-            .padding(24)
         }
-        .frame(width: 880, height: 620)
         .onChange(of: baseURL) { _ in saved = false }
         .onChange(of: model) { _ in saved = false }
         .onChange(of: targetLanguage) { _ in saved = false }
@@ -113,6 +103,104 @@ struct SettingsView: View {
         .onChange(of: screenshotHotKey) { _ in saved = false }
         .onChange(of: historyEnabled) { _ in saved = false }
         .onChange(of: glossaryText) { _ in saved = false }
+    }
+
+    private var settingsBody: some View {
+        HStack(spacing: 0) {
+            List(Pane.allCases, selection: $selectedPane) { pane in
+                Text(pane.rawValue)
+                    .tag(pane)
+                    .padding(.vertical, 4)
+            }
+            .listStyle(.sidebar)
+            .frame(width: 180)
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 0) {
+                ScrollView {
+                    content
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                Divider()
+
+                actionsSection
+                    .padding(.top, 16)
+            }
+            .padding(24)
+        }
+        .frame(width: 880, height: 620)
+    }
+
+    private var setupGuideState: SetupGuideState {
+        SetupGuideState(
+            accessibility: permissionCenter.accessibility,
+            screenRecording: permissionCenter.screenRecording,
+            skippedPermissions: skippedSetupPermissions,
+            targetLanguage: targetLanguage,
+            testedTranslationPath: testedSetupTranslationPath
+        )
+    }
+
+    private var setupGuide: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Text("Set Up TextLens")
+                .font(.title.bold())
+            Text("Finish the minimum setup for fast translation.")
+                .foregroundStyle(.secondary)
+
+            permissionRow(
+                "Accessibility",
+                state: permissionCenter.accessibility,
+                actionTitle: "Open Settings",
+                action: permissionCenter.openAccessibilitySettings
+            )
+            permissionRow(
+                "Screen Recording",
+                state: permissionCenter.screenRecording,
+                actionTitle: "Open Settings",
+                action: permissionCenter.openScreenRecordingSettings
+            )
+
+            Toggle("Skip permissions for now", isOn: $skippedSetupPermissions)
+
+            formRow("Target Language") {
+                Picker("", selection: $targetLanguage) {
+                    ForEach(SupportedLanguage.unitedNations.map(\.name), id: \.self) { language in
+                        Text(SupportedLanguage.normalized(language).displayName).tag(language)
+                    }
+                }
+                .labelsHidden()
+            }
+
+            HStack {
+                Button(testingFreeProvider ? "Testing..." : "Test Free Provider") {
+                    testedSetupTranslationPath = true
+                    testFreeProvider()
+                }
+                .disabled(testingFreeProvider)
+                Text(freeProviderStatus)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            HStack {
+                Button("Finish Setup") {
+                    save()
+                    settings.hasSeenOnboarding = true
+                    showingSetupGuide = false
+                }
+                .disabled(!setupGuideState.isComplete)
+
+                Button("Continue To Settings") {
+                    save()
+                    settings.hasSeenOnboarding = true
+                    showingSetupGuide = false
+                }
+            }
+        }
     }
 
     @ViewBuilder
