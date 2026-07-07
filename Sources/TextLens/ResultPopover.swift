@@ -116,6 +116,14 @@ final class ResultPopover: NSObject {
         NSPasteboard.general.setString(translatedText, forType: .string)
     }
 
+    @objc private func copyAll() {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(
+            originalText.isEmpty ? translatedText : "Original:\n\(originalText)\n\nTranslation:\n\(translatedText)",
+            forType: .string
+        )
+    }
+
     @objc private func retryTranslation() {
         retryAction?()
     }
@@ -138,7 +146,7 @@ final class ResultPopover: NSObject {
         let copyButton = NSButton(frame: NSRect(x: 16, y: 16, width: 80, height: 28))
         copyButton.title = "Copy All"
         copyButton.target = self
-        copyButton.action = #selector(copyTranslation)
+        copyButton.action = #selector(copyAll)
 
         let retryButton = NSButton(frame: NSRect(x: 104, y: 16, width: 64, height: 28))
         retryButton.title = "Retry"

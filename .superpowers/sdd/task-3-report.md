@@ -18,6 +18,7 @@
   - capture the returned `TranslationHistoryItem`
   - show retry support via `retry(region:displayID:)`
   - show favorite support via `historyStore.toggleFavorite(id:)`
+- Fixed reviewer finding: `Expand -> Copy All` now uses a dedicated `copyAll()` action that copies the exact expanded-window display text (`Original:` + `Translation:` block when original exists, otherwise translated text).
 
 ## Tests/build/checks run and results
 
