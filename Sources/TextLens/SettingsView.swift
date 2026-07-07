@@ -31,6 +31,8 @@ struct SettingsView: View {
     @State private var screenshotHotKey: String
     @State private var historyEnabled: Bool
     @State private var historyItems: [TranslationHistoryItem]
+    @State private var historySearch = ""
+    @State private var showingFavoritesOnly = false
     @State private var glossaryText: String
     @State private var exportStatus = ""
     @State private var saved = false
@@ -219,28 +221,50 @@ struct SettingsView: View {
             }
         case .history:
             page("History") {
-                formRow("Save History") {
-                    Toggle("", isOn: $historyEnabled)
-                        .labelsHidden()
+                Toggle("Save translation history", isOn: $historyEnabled)
+                HStack {
+                    TextField("Search history", text: $historySearch)
+                        .textFieldStyle(.roundedBorder)
+                    Toggle("Favorites", isOn: $showingFavoritesOnly)
+                        .toggleStyle(.checkbox)
                 }
+                .frame(maxWidth: 520)
+
+                if visibleHistoryItems.isEmpty {
+                    Text(historySearch.isEmpty ? "No history yet." : "No matching history.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    List(visibleHistoryItems) { item in
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(item.original)
+                                .font(.headline)
+                                .lineLimit(2)
+                            Text(item.translated)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
+                            HStack {
+                                Button(item.isFavorite ? "Unfavorite" : "Favorite") {
+                                    _ = historyStore.toggleFavorite(id: item.id)
+                                    historyItems = historyStore.items
+                                }
+                                Button("Copy Translation") {
+                                    NSPasteboard.general.clearContents()
+                                    NSPasteboard.general.setString(item.translated, forType: .string)
+                                }
+                            }
+                        }
+                    }
+                    .frame(height: 260)
+                }
+
                 HStack(spacing: 12) {
-                    Spacer()
-                        .frame(width: 150)
                     Button("Clear History") { clearHistory() }
-                    Button("Export History") { exportHistory() }
+                    Button("Export All") { exportHistory(favoritesOnly: false) }
+                    Button("Export Favorites") { exportHistory(favoritesOnly: true) }
+                        .disabled(!historyStore.items.contains { $0.isFavorite })
                     Text(exportStatus)
                         .foregroundStyle(.secondary)
                 }
-                List(historyItems) { item in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(item.original)
-                            .lineLimit(1)
-                        Text(item.translated)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
-                    }
-                }
-                .frame(minHeight: 260)
             }
         case .glossary:
             page("Glossary") {
@@ -384,6 +408,10 @@ struct SettingsView: View {
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ".map(String.init)
     }
 
+    private var visibleHistoryItems: [TranslationHistoryItem] {
+        historyStore.search(historySearch, favoritesOnly: showingFavoritesOnly)
+    }
+
     private func save() {
         saved = saveModel.save(
             SettingsDraft(
@@ -490,15 +518,17 @@ struct SettingsView: View {
     private func clearHistory() {
         historyStore.clear()
         historyItems = []
+        historySearch = ""
+        showingFavoritesOnly = false
         exportStatus = "Cleared."
     }
 
-    private func exportHistory() {
+    private func exportHistory(favoritesOnly: Bool) {
         let panel = NSSavePanel()
-        panel.nameFieldStringValue = "textlens-history.txt"
+        panel.nameFieldStringValue = favoritesOnly ? "textlens-favorites.txt" : "textlens-history.txt"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
-            try historyStore.exportText().write(to: url, atomically: true, encoding: .utf8)
+            try historyStore.exportText(favoritesOnly: favoritesOnly).write(to: url, atomically: true, encoding: .utf8)
             exportStatus = "Exported."
         } catch {
             exportStatus = error.localizedDescription
