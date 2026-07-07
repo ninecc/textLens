@@ -3,6 +3,8 @@ import SwiftUI
 import TextLensCore
 
 struct SettingsView: View {
+    @Environment(\.scenePhase) private var scenePhase
+
     private enum Pane: String, CaseIterable, Identifiable {
         case translation = "Translation"
         case permissions = "Permissions"
@@ -45,6 +47,8 @@ struct SettingsView: View {
     @State private var showingSetupGuide: Bool
     @State private var skippedSetupPermissions = false
     @State private var testedSetupTranslationPath = false
+    @State private var accessibilityPermission: PermissionState
+    @State private var screenRecordingPermission: PermissionState
 
     private let settings: SettingsStore
     private let historyStore: TranslationHistoryStore
@@ -52,12 +56,14 @@ struct SettingsView: View {
     private let saveModel: SettingsSaveModel
     private let translation = TranslationService()
     private let freeTranslation = FreeTranslationService()
-    private let permissionCenter = PermissionCenter()
+    private let permissionCenter: PermissionCenter
 
     init(settings: SettingsStore, historyStore: TranslationHistoryStore = TranslationHistoryStore(), onShortcutsChanged: @escaping () -> Void = {}) {
+        let permissionCenter = PermissionCenter()
         self.settings = settings
         self.historyStore = historyStore
         self.onShortcutsChanged = onShortcutsChanged
+        self.permissionCenter = permissionCenter
         saveModel = SettingsSaveModel(settings: settings)
         _baseURL = State(initialValue: settings.baseURL.absoluteString)
         _model = State(initialValue: settings.model)
@@ -76,6 +82,8 @@ struct SettingsView: View {
         _historyItems = State(initialValue: historyStore.items)
         _glossaryText = State(initialValue: settings.glossaryText)
         _showingSetupGuide = State(initialValue: !settings.hasSeenOnboarding)
+        _accessibilityPermission = State(initialValue: permissionCenter.accessibility)
+        _screenRecordingPermission = State(initialValue: permissionCenter.screenRecording)
     }
 
     var body: some View {
@@ -87,6 +95,11 @@ struct SettingsView: View {
             } else {
                 settingsBody
             }
+        }
+        .onAppear(perform: refreshPermissionStates)
+        .onChange(of: scenePhase) { newPhase in
+            guard newPhase == .active else { return }
+            refreshPermissionStates()
         }
         .onChange(of: baseURL) { _ in saved = false }
         .onChange(of: model) { _ in saved = false }
@@ -135,8 +148,8 @@ struct SettingsView: View {
 
     private var setupGuideState: SetupGuideState {
         SetupGuideState(
-            accessibility: permissionCenter.accessibility,
-            screenRecording: permissionCenter.screenRecording,
+            accessibility: accessibilityPermission,
+            screenRecording: screenRecordingPermission,
             skippedPermissions: skippedSetupPermissions,
             targetLanguage: targetLanguage,
             testedTranslationPath: testedSetupTranslationPath
@@ -152,15 +165,15 @@ struct SettingsView: View {
 
             permissionRow(
                 "Accessibility",
-                state: permissionCenter.accessibility,
+                state: accessibilityPermission,
                 actionTitle: "Open Settings",
-                action: permissionCenter.openAccessibilitySettings
+                action: openAccessibilitySettings
             )
             permissionRow(
                 "Screen Recording",
-                state: permissionCenter.screenRecording,
+                state: screenRecordingPermission,
                 actionTitle: "Open Settings",
-                action: permissionCenter.openScreenRecordingSettings
+                action: openScreenRecordingSettings
             )
 
             Toggle("Skip permissions for now", isOn: $skippedSetupPermissions)
@@ -269,18 +282,18 @@ struct SettingsView: View {
             page("Permissions") {
                 permissionRow(
                     "Accessibility",
-                    state: permissionCenter.accessibility,
+                    state: accessibilityPermission,
                     actionTitle: "Open Accessibility"
                 ) {
-                    permissionCenter.openAccessibilitySettings()
+                    openAccessibilitySettings()
                 }
 
                 permissionRow(
                     "Screen Recording",
-                    state: permissionCenter.screenRecording,
+                    state: screenRecordingPermission,
                     actionTitle: "Open Screen Recording"
                 ) {
-                    permissionCenter.openScreenRecordingSettings()
+                    openScreenRecordingSettings()
                 }
             }
         case .popover:
@@ -521,6 +534,21 @@ struct SettingsView: View {
         settings.glossaryText = glossaryText
         historyStore.isEnabled = historyEnabled
         onShortcutsChanged()
+    }
+
+    private func refreshPermissionStates() {
+        accessibilityPermission = permissionCenter.accessibility
+        screenRecordingPermission = permissionCenter.screenRecording
+    }
+
+    private func openAccessibilitySettings() {
+        permissionCenter.openAccessibilitySettings()
+        refreshPermissionStates()
+    }
+
+    private func openScreenRecordingSettings() {
+        permissionCenter.openScreenRecordingSettings()
+        refreshPermissionStates()
     }
 
     private func testAPI() {
