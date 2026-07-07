@@ -44,6 +44,7 @@ struct SettingsView: View {
     @State private var testingFreeProvider = false
     @State private var comparisonStatus = ""
     @State private var testingComparison = false
+    @State private var showingAdvancedSettings = false
     @State private var showingSetupGuide: Bool
     @State private var skippedSetupPermissions = false
     @State private var testedSetupTranslationPath = false
@@ -263,17 +264,22 @@ struct SettingsView: View {
                         .frame(width: 150)
                     Button(testingFreeProvider ? "Testing..." : "Test Free Provider") { testFreeProvider() }
                         .disabled(testingFreeProvider)
-                    Button(testingComparison ? "Comparing..." : "Compare Providers") { compareProviders() }
-                        .disabled(testingComparison)
                     Text(freeProviderStatus)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
 
-                formRow("Comparison") {
-                    Text(comparisonStatus.isEmpty ? "No comparison yet." : comparisonStatus)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(4)
+                DisclosureGroup("Advanced Translation Settings", isExpanded: $showingAdvancedSettings) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 12) {
+                            Button(testingComparison ? "Comparing..." : "Compare Providers") { compareProviders() }
+                                .disabled(testingComparison)
+                            Text(comparisonStatus.isEmpty ? "No comparison yet." : comparisonStatus)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(4)
+                        }
+                    }
+                    .padding(.top, 8)
                 }
 
                 credentialsSection
@@ -380,35 +386,33 @@ struct SettingsView: View {
             }
         case .api:
             page("API Fallback") {
-                formRow("Use API when free translation fails") {
-                    Toggle("", isOn: $useAPIFallback)
-                        .labelsHidden()
-                }
-                formRow("Base URL") {
-                    TextField("Base URL", text: $baseURL)
-                        .textFieldStyle(.roundedBorder)
-                }
-                formRow("API Key") {
-                    SecureField("API Key", text: $apiKey)
-                        .textFieldStyle(.roundedBorder)
-                }
-                formRow("Keychain Access") {
-                    Text("Leave blank to keep the saved key. macOS may ask for Keychain access when API fallback is used.")
-                        .foregroundStyle(.secondary)
-                        .lineLimit(3)
-                }
-                formRow("Model") {
-                    TextField("Model", text: $model)
-                        .textFieldStyle(.roundedBorder)
-                }
-                HStack(spacing: 12) {
-                    Spacer()
-                        .frame(width: 150)
-                    Button(testingAPI ? "Testing..." : "Test API") { testAPI() }
-                        .disabled(testingAPI)
-                    Text(apiStatus)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
+                DisclosureGroup("Advanced Translation Settings", isExpanded: $showingAdvancedSettings) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Toggle("Use API when free translation fails", isOn: $useAPIFallback)
+                        formRow("Base URL") {
+                            TextField("Base URL", text: $baseURL)
+                                .textFieldStyle(.roundedBorder)
+                        }
+                        formRow("API Key") {
+                            SecureField("Leave blank to keep saved key", text: $apiKey)
+                                .textFieldStyle(.roundedBorder)
+                        }
+                        formRow("Keychain Access") {
+                            Text("Leave blank to keep the saved key. macOS may ask for Keychain access when API fallback is used.")
+                                .foregroundStyle(.secondary)
+                                .lineLimit(3)
+                        }
+                        formRow("Model") {
+                            TextField("Model", text: $model)
+                                .textFieldStyle(.roundedBorder)
+                        }
+                        Button(testingAPI ? "Testing..." : "Test API", action: testAPI)
+                            .disabled(testingAPI)
+                        Text(apiStatus)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
+                    .padding(.top, 8)
                 }
             }
         }

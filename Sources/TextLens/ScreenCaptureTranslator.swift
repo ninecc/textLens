@@ -128,6 +128,8 @@ final class ScreenCaptureTranslator {
         alert.messageText = "Confirm OCR Text"
         alert.informativeText = "Edit recognized text before translation."
         alert.addButton(withTitle: "Translate")
+        alert.addButton(withTitle: "Copy OCR Text")
+        alert.addButton(withTitle: "Reselect")
         alert.addButton(withTitle: "Cancel")
 
         let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: 420, height: 160))
@@ -137,9 +139,19 @@ final class ScreenCaptureTranslator {
         scrollView.hasVerticalScroller = true
         alert.accessoryView = scrollView
 
-        return alert.runModal() == .alertFirstButtonReturn
-            ? textView.string.trimmingCharacters(in: .whitespacesAndNewlines)
-            : nil
+        switch alert.runModal() {
+        case .alertFirstButtonReturn:
+            return textView.string.trimmingCharacters(in: .whitespacesAndNewlines)
+        case .alertSecondButtonReturn:
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(textView.string, forType: .string)
+            return nil
+        case NSApplication.ModalResponse(rawValue: NSApplication.ModalResponse.alertFirstButtonReturn.rawValue + 2):
+            start()
+            return nil
+        default:
+            return nil
+        }
     }
 
     private func showKeychainHintIfNeeded(original: String, anchor: CGRect) {

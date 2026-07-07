@@ -145,7 +145,11 @@ final class AppShell: NSObject, NSApplicationDelegate {
             self?.screenshotTranslate()
         }
         if !selectionRegistered || !screenshotRegistered {
-            settings.providerHealth = "Shortcut registration failed. Pick another key in Settings."
+            let failed = [
+                selectionRegistered ? nil : "Translate Selection",
+                screenshotRegistered ? nil : "Screenshot Translate"
+            ].compactMap { $0 }.joined(separator: ", ")
+            settings.providerHealth = "\(failed) shortcut failed. Choose another key in Settings."
         }
     }
 
