@@ -44,3 +44,14 @@
 
 ## Concerns
 - Test execution in this environment initially required escalating because of sandboxed SwiftPM/clang cache restrictions; I retried in escalated mode to collect actionable results.
+
+## Task 1 Review Fix
+- Updated `Sources/TextLensCore/TranslationHistoryStore.swift` so `add(original:translated:)` is read-only when `isEnabled == false`, returning the existing favorite item if present (preserving original `id` and order) or an unsaved item if absent, without mutating `items`.
+- Added `testReaddingFavoriteWhileHistoryDisabledPreservesIdAndOrder` to `Tests/TextLensTests/TranslationHistoryStoreTests.swift` to verify re-adding an existing favorite while history is disabled keeps ID and list ordering/count stable.
+- Ran `rtk swift test --filter TranslationHistoryStoreTests`:
+  - Attempted first in sandbox: failed due `/Users/pp/.cache/clang/ModuleCache` permission errors.
+  - Retried with escalation: **PASS** — `Executed 7 tests, with 0 failures (0 unexpected)`.
+- Files changed:
+  - `Sources/TextLensCore/TranslationHistoryStore.swift`
+  - `Tests/TextLensTests/TranslationHistoryStoreTests.swift`
+  - `.superpowers/sdd/task-1-report.md`

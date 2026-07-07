@@ -79,4 +79,21 @@ final class TranslationHistoryStoreTests: XCTestCase {
         XCTAssertEqual(store.items.map(\.original), ["saved"])
         XCTAssertTrue(store.items[0].isFavorite)
     }
+
+    func testReaddingFavoriteWhileHistoryDisabledPreservesIdAndOrder() {
+        let defaults = UserDefaults(suiteName: UUID().uuidString)!
+        let store = TranslationHistoryStore(defaults: defaults)
+        let favorite = store.add(original: "keep", translated: "保留")
+        _ = store.toggleFavorite(id: favorite.id)
+        _ = store.add(original: "noise", translated: "噪音")
+
+        store.isEnabled = false
+        let beforeItems = store.items
+        let readded = store.add(original: "keep", translated: "保留")
+
+        XCTAssertEqual(readded.id, favorite.id)
+        XCTAssertEqual(store.items.count, beforeItems.count)
+        XCTAssertEqual(store.items.map(\.id), beforeItems.map(\.id))
+        XCTAssertEqual(store.items.map(\.original), beforeItems.map(\.original))
+    }
 }

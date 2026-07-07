@@ -62,8 +62,10 @@ public final class TranslationHistoryStore {
     @discardableResult
     public func add(original: String, translated: String) -> TranslationHistoryItem {
         let existing = items.first { $0.original == original && $0.translated == translated }
+        if !isEnabled {
+            return existing ?? TranslationHistoryItem(original: original, translated: translated)
+        }
         let item = TranslationHistoryItem(original: original, translated: translated, isFavorite: existing?.isFavorite ?? false)
-        guard isEnabled || item.isFavorite else { return item }
         items = [item] + items.filter { $0.original != original || $0.translated != translated }
         return item
     }
