@@ -4,6 +4,8 @@ import TextLensCore
 
 final class AppShell: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
+    private var menu: NSMenu?
+    private var recentItemIDs: [NSMenuItem: UUID] = [:]
     private var settingsWindow: NSWindow?
     private let settings = SettingsStore()
     private let translation = TranslationService()
@@ -42,6 +44,7 @@ final class AppShell: NSObject, NSApplicationDelegate {
         menu.delegate = self
 
         item.menu = menu
+        self.menu = menu
         statusItem = item
         registerHotKeys()
 
@@ -91,6 +94,44 @@ final class AppShell: NSObject, NSApplicationDelegate {
         NSApplication.shared.terminate(nil)
     }
 
+    private func rebuildMenu(_ menu: NSMenu) {
+        menu.removeAllItems()
+        recentItemIDs.removeAll()
+
+        menu.addItem(NSMenuItem(title: "Translate Selection", action: #selector(translateSelection), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Translate Clipboard", action: #selector(translateClipboard), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Screenshot Translate", action: #selector(screenshotTranslate), keyEquivalent: ""))
+
+        if historyStore.isEnabled, !historyStore.items.isEmpty {
+            menu.addItem(.separator())
+            for item in historyStore.items.prefix(3) {
+                let title = String(item.translated.prefix(40))
+                let menuItem = NSMenuItem(
+                    title: title.isEmpty ? "Recent Translation" : title,
+                    action: #selector(openRecentResult(_:)),
+                    keyEquivalent: ""
+                )
+                recentItemIDs[menuItem] = item.id
+                menu.addItem(menuItem)
+            }
+            menu.addItem(NSMenuItem(title: "Open History", action: #selector(openSettings), keyEquivalent: ""))
+        }
+
+        menu.addItem(.separator())
+        menu.addItem(NSMenuItem(title: "Settings", action: #selector(openSettings), keyEquivalent: ","))
+        menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
+    }
+
+    @objc private func openRecentResult(_ sender: NSMenuItem) {
+        guard let id = recentItemIDs[sender], let item = historyStore.item(id: id) else { return }
+        popover.show(
+            original: item.original,
+            translated: item.translated,
+            retry: { [weak self] in self?.selectionTranslator.translateText(item.original) },
+            favorite: { [weak historyStore] in _ = historyStore?.toggleFavorite(id: item.id) }
+        )
+    }
+
     private func updateStatus() {
         statusItem?.button?.toolTip = statusText()
     }
@@ -132,6 +173,7 @@ final class AppShell: NSObject, NSApplicationDelegate {
 
 extension AppShell: NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) {
+        rebuildMenu(menu)
         updateStatus()
     }
 }
