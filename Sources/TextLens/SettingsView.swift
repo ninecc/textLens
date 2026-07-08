@@ -37,7 +37,6 @@ struct SettingsView: View {
     @State private var showingFavoritesOnly = false
     @State private var glossaryText: String
     @State private var exportStatus = ""
-    @State private var saved = false
     @State private var apiStatus = ""
     @State private var testingAPI = false
     @State private var freeProviderStatus = ""
@@ -102,21 +101,6 @@ struct SettingsView: View {
             guard newPhase == .active else { return }
             refreshPermissionStates()
         }
-        .onChange(of: baseURL) { _ in saved = false }
-        .onChange(of: model) { _ in saved = false }
-        .onChange(of: targetLanguage) { _ in saved = false }
-        .onChange(of: freeTranslationProvider) { _ in saved = false }
-        .onChange(of: youdaoAppID) { _ in saved = false }
-        .onChange(of: youdaoSecret) { _ in saved = false }
-        .onChange(of: baiduAppID) { _ in saved = false }
-        .onChange(of: baiduSecret) { _ in saved = false }
-        .onChange(of: apiKey) { _ in saved = false }
-        .onChange(of: useAPIFallback) { _ in saved = false }
-        .onChange(of: screenshotPopoverOpacity) { _ in saved = false }
-        .onChange(of: selectionHotKey) { _ in saved = false }
-        .onChange(of: screenshotHotKey) { _ in saved = false }
-        .onChange(of: historyEnabled) { _ in saved = false }
-        .onChange(of: glossaryText) { _ in saved = false }
     }
 
     private var settingsBody: some View {
@@ -361,9 +345,11 @@ struct SettingsView: View {
 
                 HStack(spacing: 12) {
                     Button("Clear History") { clearHistory() }
+                        .disabled(!hasHistoryItems)
                     Button("Export All") { exportHistory(favoritesOnly: false) }
+                        .disabled(!hasHistoryItems)
                     Button("Export Favorites") { exportHistory(favoritesOnly: true) }
-                        .disabled(!historyStore.items.contains { $0.isFavorite })
+                        .disabled(!hasFavoriteHistoryItems)
                     Text(exportStatus)
                         .foregroundStyle(.secondary)
                 }
@@ -499,7 +485,8 @@ struct SettingsView: View {
     private var actionsSection: some View {
         HStack {
             Spacer()
-            Button(saved ? "Saved" : "Save") { save() }
+            Button(hasUnsavedChanges ? "Save" : "Saved") { save() }
+                .disabled(!hasUnsavedChanges)
             Button("Restore Defaults") { restoreDefaults() }
         }
     }
@@ -508,12 +495,38 @@ struct SettingsView: View {
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ".map(String.init)
     }
 
+    private var hasHistoryItems: Bool {
+        !historyStore.items.isEmpty
+    }
+
+    private var hasFavoriteHistoryItems: Bool {
+        historyStore.items.contains { $0.isFavorite }
+    }
+
+    private var hasUnsavedChanges: Bool {
+        baseURL != settings.baseURL.absoluteString
+            || model != settings.model
+            || SupportedLanguage.normalized(targetLanguage).name != settings.targetLanguage
+            || freeTranslationProvider != settings.freeTranslationProvider
+            || !youdaoSecret.isEmpty
+            || !baiduSecret.isEmpty
+            || !apiKey.isEmpty
+            || youdaoAppID != settings.youdaoAppID
+            || baiduAppID != settings.baiduAppID
+            || useAPIFallback != settings.useAPIFallback
+            || clampedOpacity(screenshotPopoverOpacity) != settings.screenshotPopoverOpacity
+            || selectionHotKey != settings.selectionHotKey
+            || screenshotHotKey != settings.screenshotHotKey
+            || historyEnabled != historyStore.isEnabled
+            || glossaryText != settings.glossaryText
+    }
+
     private var visibleHistoryItems: [TranslationHistoryItem] {
         historyStore.search(historySearch, favoritesOnly: showingFavoritesOnly)
     }
 
     private func save() {
-        saved = saveModel.save(
+        _ = saveModel.save(
             SettingsDraft(
                 baseURL: baseURL,
                 model: model,
@@ -627,7 +640,6 @@ struct SettingsView: View {
         freeProviderStatus = ""
         comparisonStatus = ""
         exportStatus = ""
-        saved = false
     }
 
     private func clearHistory() {
