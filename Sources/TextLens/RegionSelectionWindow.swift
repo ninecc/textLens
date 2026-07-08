@@ -85,7 +85,7 @@ private final class RegionSelectionView: NSView {
     }
 
     private func drawCancelHint() {
-        let text = "Esc to cancel"
+        let text = "Drag to select, Esc to cancel"
         let attributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 14, weight: .medium),
             .foregroundColor: NSColor.white
