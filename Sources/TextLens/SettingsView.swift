@@ -571,11 +571,13 @@ struct SettingsView: View {
             apiStatus = "Missing API settings."
             return
         }
+        let config = TranslationService.Config(baseURL: url, apiKey: apiKey, model: model)
+        let language = targetLanguage
         testingAPI = true
         apiStatus = ""
         Task {
             do {
-                _ = try await translation.translate(text: "hello", targetLanguage: targetLanguage, config: .init(baseURL: url, apiKey: apiKey, model: model))
+                _ = try await translation.translate(text: "hello", targetLanguage: language, config: config)
                 await MainActor.run { apiStatus = "API available." }
             } catch {
                 await MainActor.run { apiStatus = error.localizedDescription }
@@ -585,14 +587,16 @@ struct SettingsView: View {
     }
 
     private func testFreeProvider() {
+        let config = freeProviderConfig
+        let language = targetLanguage
         testingFreeProvider = true
         freeProviderStatus = ""
         Task {
             do {
                 _ = try await freeTranslation.translate(
                     text: "hello",
-                    targetLanguage: targetLanguage,
-                    config: freeProviderConfig
+                    targetLanguage: language,
+                    config: config
                 )
                 await MainActor.run { freeProviderStatus = "Free provider available." }
             } catch {

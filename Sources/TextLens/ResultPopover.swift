@@ -78,7 +78,7 @@ final class ResultPopover: NSObject {
         )
         let closeButton = button(
             "Close",
-            frame: NSRect(x: 368, y: 12, width: 28, height: 24),
+            frame: NSRect(x: 360, y: 12, width: 36, height: 24),
             action: #selector(close)
         )
 
