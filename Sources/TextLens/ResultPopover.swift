@@ -52,34 +52,35 @@ final class ResultPopover: NSObject {
         text.lineBreakMode = .byWordWrapping
         text.maximumNumberOfLines = 0
 
-        let copyOriginalButton = NSButton(frame: NSRect(x: 12, y: 12, width: 104, height: 24))
-        copyOriginalButton.title = "Copy Original"
-        copyOriginalButton.target = self
-        copyOriginalButton.action = #selector(copyOriginal)
-        copyOriginalButton.isEnabled = !original.isEmpty
-
-        let copyTranslationButton = NSButton(frame: NSRect(x: 124, y: 12, width: 124, height: 24))
-        copyTranslationButton.title = "Copy Translation"
-        copyTranslationButton.target = self
-        copyTranslationButton.action = #selector(copyTranslation)
-        copyTranslationButton.isEnabled = !isLoading && !translated.isEmpty
-
-        let retryButton = NSButton(frame: NSRect(x: 248, y: 12, width: 48, height: 24))
-        retryButton.title = "Retry"
-        retryButton.target = self
-        retryButton.action = #selector(retryTranslation)
-        retryButton.isEnabled = retry != nil && !isLoading
-
-        let expandButton = NSButton(frame: NSRect(x: 300, y: 12, width: 56, height: 24))
-        expandButton.title = "Expand"
-        expandButton.target = self
-        expandButton.action = #selector(expand)
-        expandButton.isEnabled = !isLoading && (!original.isEmpty || !translated.isEmpty)
-
-        let closeButton = NSButton(frame: NSRect(x: 360, y: 12, width: 36, height: 24))
-        closeButton.title = "Close"
-        closeButton.target = self
-        closeButton.action = #selector(close)
+        let copyOriginalButton = button(
+            "Copy Original",
+            frame: NSRect(x: 12, y: 12, width: 104, height: 24),
+            action: #selector(copyOriginal),
+            enabled: !original.isEmpty
+        )
+        let copyTranslationButton = button(
+            "Copy Translation",
+            frame: NSRect(x: 124, y: 12, width: 124, height: 24),
+            action: #selector(copyTranslation),
+            enabled: !isLoading && !translated.isEmpty
+        )
+        let retryButton = button(
+            "Retry",
+            frame: NSRect(x: 256, y: 12, width: 48, height: 24),
+            action: #selector(retryTranslation),
+            enabled: retry != nil && !isLoading
+        )
+        let expandButton = button(
+            "Expand",
+            frame: NSRect(x: 308, y: 12, width: 56, height: 24),
+            action: #selector(expand),
+            enabled: !isLoading && (!original.isEmpty || !translated.isEmpty)
+        )
+        let closeButton = button(
+            "Close",
+            frame: NSRect(x: 368, y: 12, width: 28, height: 24),
+            action: #selector(close)
+        )
 
         let content = NSView(frame: NSRect(x: 0, y: 0, width: 400, height: 236))
         content.addSubview(text)
@@ -116,6 +117,15 @@ final class ResultPopover: NSObject {
         NSPasteboard.general.setString(translatedText, forType: .string)
     }
 
+    private func button(_ title: String, frame: NSRect, action: Selector, enabled: Bool = true) -> NSButton {
+        let button = NSButton(frame: frame)
+        button.title = title
+        button.target = self
+        button.action = action
+        button.isEnabled = enabled
+        return button
+    }
+
     @objc private func copyAll() {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(
@@ -143,22 +153,26 @@ final class ResultPopover: NSObject {
         scrollView.hasVerticalScroller = true
         scrollView.hasHorizontalScroller = false
 
-        let copyButton = NSButton(frame: NSRect(x: 16, y: 16, width: 80, height: 28))
-        copyButton.title = "Copy All"
-        copyButton.target = self
-        copyButton.action = #selector(copyAll)
+        let copyButton = button(
+            "Copy All",
+            frame: NSRect(x: 16, y: 16, width: 88, height: 28),
+            action: #selector(copyAll),
+            enabled: !originalText.isEmpty || !translatedText.isEmpty
+        )
 
-        let retryButton = NSButton(frame: NSRect(x: 104, y: 16, width: 64, height: 28))
-        retryButton.title = "Retry"
-        retryButton.target = self
-        retryButton.action = #selector(retryTranslation)
-        retryButton.isEnabled = retryAction != nil
+        let retryButton = button(
+            "Retry",
+            frame: NSRect(x: 112, y: 16, width: 72, height: 28),
+            action: #selector(retryTranslation),
+            enabled: retryAction != nil
+        )
 
-        let favoriteButton = NSButton(frame: NSRect(x: 176, y: 16, width: 80, height: 28))
-        favoriteButton.title = "Favorite"
-        favoriteButton.target = self
-        favoriteButton.action = #selector(favoriteResult)
-        favoriteButton.isEnabled = favoriteAction != nil
+        let favoriteButton = button(
+            "Favorite",
+            frame: NSRect(x: 192, y: 16, width: 88, height: 28),
+            action: #selector(favoriteResult),
+            enabled: favoriteAction != nil
+        )
 
         content.addSubview(scrollView)
         content.addSubview(copyButton)
