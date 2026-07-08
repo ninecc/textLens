@@ -541,6 +541,9 @@ struct SettingsView: View {
                 screenshotPopoverOpacity: screenshotPopoverOpacity
             )
         )
+        youdaoSecret = ""
+        baiduSecret = ""
+        apiKey = ""
         settings.selectionHotKey = selectionHotKey
         settings.screenshotHotKey = screenshotHotKey
         settings.glossaryText = glossaryText
