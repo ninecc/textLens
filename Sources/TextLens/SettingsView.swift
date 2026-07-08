@@ -607,13 +607,15 @@ struct SettingsView: View {
     }
 
     private func compareProviders() {
+        let configs = comparisonConfigs
+        let language = targetLanguage
         testingComparison = true
         comparisonStatus = ""
         Task {
             var results: [String] = []
-            for config in comparisonConfigs {
+            for config in configs {
                 do {
-                    let output = try await freeTranslation.translate(text: "hello", targetLanguage: targetLanguage, config: config)
+                    let output = try await freeTranslation.translate(text: "hello", targetLanguage: language, config: config)
                     results.append("\(config.provider.displayName): \(output)")
                 } catch {
                     results.append("\(config.provider.displayName): \(error.localizedDescription)")

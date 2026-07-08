@@ -48,7 +48,7 @@ final class ResultPopover: NSObject {
         favoriteAction = favorite
 
         let text = NSTextField(labelWithString: original.isEmpty ? translated : "Original:\n\(original)\n\nTranslation:\n\(translated)")
-        text.frame = NSRect(x: 12, y: 44, width: 376, height: 180)
+        text.frame = NSRect(x: 12, y: 44, width: 396, height: 180)
         text.lineBreakMode = .byWordWrapping
         text.maximumNumberOfLines = 0
 
@@ -78,11 +78,11 @@ final class ResultPopover: NSObject {
         )
         let closeButton = button(
             "Close",
-            frame: NSRect(x: 360, y: 12, width: 36, height: 24),
+            frame: NSRect(x: 372, y: 12, width: 40, height: 24),
             action: #selector(close)
         )
 
-        let content = NSView(frame: NSRect(x: 0, y: 0, width: 400, height: 236))
+        let content = NSView(frame: NSRect(x: 0, y: 0, width: 420, height: 236))
         content.addSubview(text)
         content.addSubview(copyOriginalButton)
         content.addSubview(copyTranslationButton)
@@ -91,7 +91,7 @@ final class ResultPopover: NSObject {
         content.addSubview(closeButton)
 
         let point = NSEvent.mouseLocation
-        let size = NSSize(width: 400, height: 236)
+        let size = NSSize(width: 420, height: 236)
         let screenPoint = anchor.map { CGPoint(x: $0.midX, y: $0.midY) } ?? point
         let visibleFrame = NSScreen.screens.first(where: { $0.frame.contains(screenPoint) })?.visibleFrame ?? NSScreen.main?.visibleFrame ?? .zero
         let frame = ResultPopoverPlacement.frame(size: size, point: point, anchor: anchor, visibleFrame: visibleFrame)
