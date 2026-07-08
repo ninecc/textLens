@@ -1,57 +1,60 @@
-# Task 1 Report: History Search, Favorites, And Export Modes
+# Task 1 Report: Make Setup Completion Permission-Based
 
-## What I implemented
-- Updated `Sources/TextLensCore/TranslationHistoryStore.swift` to include:
-  - `TranslationHistoryItem.isFavorite`.
-  - `TranslationHistoryStore.add(original:translated:) -> TranslationHistoryItem` with return value and dedupe/favorite retention behavior.
-  - `TranslationHistoryStore.item(id:)`.
-  - `TranslationHistoryStore.toggleFavorite(id:)`.
-  - `TranslationHistoryStore.search(_ query:favoritesOnly:)`.
-  - `TranslationHistoryStore.exportText(favoritesOnly:)`.
-  - Favorite-aware retention logic so favorites are preserved beyond the recent-history limit.
-  - Backward-compatible decoding for older persisted items missing `isFavorite` (defaults to `false`).
-- Added tests to `Tests/TextLensTests/TranslationHistoryStoreTests.swift`:
-  - `testSearchMatchesOriginalAndTranslationCaseInsensitively`
-  - `testFavoritesSurviveRecentHistoryLimit`
-  - `testFavoriteFilterAndExportFavoritesOnly`
-  - `testDisabledHistoryDoesNotAddNewNonFavoriteItems`
-  - Kept existing tests intact.
-
-## Tests run and results
-- `rtk swift test --filter TranslationHistoryStoreTests` (first attempts without escalation): failed before compile due sandbox/cache restrictions (`/Users/pp/.cache/clang/ModuleCache` not writable and `sandbox-exec` errors).
-- `rtk swift test --filter TranslationHistoryStoreTests` (run with escalation): executed and failed as expected against old API surface (missing `search`, `toggleFavorite`, `add` return type, `exportText(favoritesOnly:)`) — RED phase.
-- `rtk swift test --filter TranslationHistoryStoreTests` (run with escalation after implementation): **PASS**, 6 tests.
-- `rtk swift run TextLensChecks` (run with escalation): **PASS** (`Build of product 'TextLensChecks' complete... ok`).
+## What I changed
+- `Tests/TextLensTests/SetupGuideStateTests.swift`
+  - Replaced with the brief’s exact cases:
+    - `testIncompleteWhenPermissionsMissingAndNotSkipped`
+    - `testCompleteWhenPermissionsGrantedAndLanguageSelectedWithoutProviderTest`
+    - `testCompleteWhenPermissionsSkippedAndLanguageSelectedWithoutProviderTest`
+    - `testIncompleteWithoutTargetLanguage`
+- `Sources/TextLensCore/SetupGuideState.swift`
+  - Updated `isComplete` to require:
+    - permissions ready (`skippedPermissions` is true, or both permissions granted), and
+    - non-empty trimmed `targetLanguage`.
+  - Removed `testedTranslationPath` as a required condition.
+- `Sources/TextLens/SettingsView.swift`
+  - Replaced setup footer `HStack` so it only has:
+    - `Spacer()`
+    - `Button("Finish Setup")` with `.disabled(!setupGuideState.isComplete)`
+  - Removed competing “Continue To Settings” button.
+  - Left the `Test Free Provider` button and status text unchanged.
 
 ## TDD evidence
-- RED command/output:
-  - `rtk swift test --filter TranslationHistoryStoreTests` (with implementation still old) produced compile errors for missing members (`search`, `toggleFavorite`, `exportText(favoritesOnly:)`) and `add(...)` return type mismatch (`()`, warnings and key-path inference errors in new tests).
-- GREEN command/output:
-  - `rtk swift test --filter TranslationHistoryStoreTests` after code changes passed all selected tests:
-    - `Executed 6 tests, with 0 failures (0 unexpected) in 0.016 (0.017) seconds`
+- **RED step (as requested):**
+  - `swift test --filter SetupGuideStateTests`
+  - Expected fail observed: `testCompleteWhenPermissionsGrantedAndLanguageSelectedWithoutProviderTest` failed because `isComplete` still required `testedTranslationPath`.
+- **GREEN step:**
+  - `swift test --filter SetupGuideStateTests`
+  - Result: PASS (4 tests, 0 failures).
+- **Task checks:**
+  - `swift build`
+  - Result: PASS.
+
+## Tests and results
+- `swift test --filter SetupGuideStateTests` (first run, in-progress check): failed for environment cache permission error when building manifest (`/Users/didi/.cache/clang/ModuleCache` not writable) before retry.
+- `swift test --filter SetupGuideStateTests` (escalated rerun): FAIL (expected, `testCompleteWhenPermissionsGrantedAndLanguageSelectedWithoutProviderTest`).
+- `swift test --filter SetupGuideStateTests` (post-change): PASS, 4/4.
+- `swift build`: PASS.
 
 ## Files changed
-- `Sources/TextLensCore/TranslationHistoryStore.swift`
-- `Tests/TextLensTests/TranslationHistoryStoreTests.swift`
+- `Sources/TextLensCore/SetupGuideState.swift`
+- `Tests/TextLensTests/SetupGuideStateTests.swift`
+- `Sources/TextLens/SettingsView.swift`
 - `.superpowers/sdd/task-1-report.md`
 
-## Self-review findings
-- The implementation follows the brief exactly and preserves existing history ordering (most recent first).
-- Favorite items are kept even when recent-history limit is exceeded.
-- Search uses `localizedCaseInsensitiveContains` on both original and translated text.
-- `add(...)` now returns the created/found item, aligning with required API and supporting tests.
-- `exportText(favoritesOnly:)` now reuses the search path for consistent filtering.
+## Self-review
+- Implementation is minimal and scoped to the required contract shift: setup completion no longer blocks on provider test.
+- `testedTranslationPath` remains present for provider test UI state and is not removed.
+- Setup footer now has only one completion action, matching the brief.
 
 ## Concerns
-- Test execution in this environment initially required escalating because of sandboxed SwiftPM/clang cache restrictions; I retried in escalated mode to collect actionable results.
+- Two commands required escalated execution due sandbox restrictions (`swift` toolchain cache path and `git` index lock).
 
-## Task 1 Review Fix
-- Updated `Sources/TextLensCore/TranslationHistoryStore.swift` so `add(original:translated:)` is read-only when `isEnabled == false`, returning the existing favorite item if present (preserving original `id` and order) or an unsaved item if absent, without mutating `items`.
-- Added `testReaddingFavoriteWhileHistoryDisabledPreservesIdAndOrder` to `Tests/TextLensTests/TranslationHistoryStoreTests.swift` to verify re-adding an existing favorite while history is disabled keeps ID and list ordering/count stable.
-- Ran `rtk swift test --filter TranslationHistoryStoreTests`:
-  - Attempted first in sandbox: failed due `/Users/pp/.cache/clang/ModuleCache` permission errors.
-  - Retried with escalation: **PASS** — `Executed 7 tests, with 0 failures (0 unexpected)`.
-- Files changed:
-  - `Sources/TextLensCore/TranslationHistoryStore.swift`
-  - `Tests/TextLensTests/TranslationHistoryStoreTests.swift`
-  - `.superpowers/sdd/task-1-report.md`
+## Commit
+- `9a8450a` — `fix: simplify setup completion`
+
+- Task 1 review finding fix (skipped-permissions path):
+  - Command: `swift test --filter SetupGuideStateTests`
+  - Output: `PASS` (4 tests, 0 failures) after environment-adjusted rerun.
+  - Files changed: `Tests/TextLensTests/SetupGuideStateTests.swift`
+  - Commit: `9bb8409`
