@@ -25,6 +25,5 @@ public struct SetupGuideState: Equatable {
         let permissionsReady = skippedPermissions || (accessibility.isGranted && screenRecording.isGranted)
         return permissionsReady
             && !targetLanguage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && testedTranslationPath
     }
 }

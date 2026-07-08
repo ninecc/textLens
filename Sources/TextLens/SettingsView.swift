@@ -201,18 +201,13 @@ struct SettingsView: View {
             Spacer()
 
             HStack {
+                Spacer()
                 Button("Finish Setup") {
                     save()
                     settings.hasSeenOnboarding = true
                     showingSetupGuide = false
                 }
                 .disabled(!setupGuideState.isComplete)
-
-                Button("Continue To Settings") {
-                    save()
-                    settings.hasSeenOnboarding = true
-                    showingSetupGuide = false
-                }
             }
         }
     }

@@ -8,13 +8,25 @@ final class SetupGuideStateTests: XCTestCase {
             screenRecording: .granted,
             skippedPermissions: false,
             targetLanguage: "Chinese",
-            testedTranslationPath: true
+            testedTranslationPath: false
         )
 
         XCTAssertFalse(state.isComplete)
     }
 
-    func testCompleteWhenPermissionsSkippedLanguageSelectedAndProviderTested() {
+    func testCompleteWhenPermissionsGrantedAndLanguageSelectedWithoutProviderTest() {
+        let state = SetupGuideState(
+            accessibility: .granted,
+            screenRecording: .granted,
+            skippedPermissions: false,
+            targetLanguage: "Chinese",
+            testedTranslationPath: false
+        )
+
+        XCTAssertTrue(state.isComplete)
+    }
+
+    func testCompleteWhenPermissionsSkippedAndLanguageSelectedWithoutProviderTest() {
         let state = SetupGuideState(
             accessibility: .missing,
             screenRecording: .missing,
@@ -26,8 +38,15 @@ final class SetupGuideStateTests: XCTestCase {
         XCTAssertTrue(state.isComplete)
     }
 
-    func testIncompleteWithoutTargetLanguageOrTranslationTest() {
-        XCTAssertFalse(SetupGuideState(accessibility: .granted, screenRecording: .granted, skippedPermissions: false, targetLanguage: "", testedTranslationPath: true).isComplete)
-        XCTAssertFalse(SetupGuideState(accessibility: .granted, screenRecording: .granted, skippedPermissions: false, targetLanguage: "Chinese", testedTranslationPath: false).isComplete)
+    func testIncompleteWithoutTargetLanguage() {
+        XCTAssertFalse(
+            SetupGuideState(
+                accessibility: .granted,
+                screenRecording: .granted,
+                skippedPermissions: false,
+                targetLanguage: "",
+                testedTranslationPath: false
+            ).isComplete
+        )
     }
 }
