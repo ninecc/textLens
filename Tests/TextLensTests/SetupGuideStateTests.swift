@@ -32,7 +32,7 @@ final class SetupGuideStateTests: XCTestCase {
             screenRecording: .missing,
             skippedPermissions: true,
             targetLanguage: "Chinese",
-            testedTranslationPath: true
+            testedTranslationPath: false
         )
 
         XCTAssertTrue(state.isComplete)
