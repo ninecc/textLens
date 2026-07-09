@@ -7,6 +7,8 @@ final class ResultPopover: NSObject {
     private var originalText = ""
     private var translatedText = ""
     private var retryAction: (() -> Void)?
+    private var editOriginalAction: (() -> Void)?
+    private var reselectAction: (() -> Void)?
     private var favoriteAction: (() -> Void)?
 
     func show(
@@ -16,6 +18,8 @@ final class ResultPopover: NSObject {
         backgroundOpacity: Double = 0.9,
         isLoading: Bool = false,
         retry: (() -> Void)? = nil,
+        editOriginal: (() -> Void)? = nil,
+        reselect: (() -> Void)? = nil,
         favorite: (() -> Void)? = nil
     ) {
         DispatchQueue.main.async { [weak self] in
@@ -26,6 +30,8 @@ final class ResultPopover: NSObject {
                 backgroundOpacity: backgroundOpacity,
                 isLoading: isLoading,
                 retry: retry,
+                editOriginal: editOriginal,
+                reselect: reselect,
                 favorite: favorite
             )
         }
@@ -38,6 +44,8 @@ final class ResultPopover: NSObject {
         backgroundOpacity: Double,
         isLoading: Bool,
         retry: (() -> Void)?,
+        editOriginal: (() -> Void)?,
+        reselect: (() -> Void)?,
         favorite: (() -> Void)?
     ) {
         window?.close()
@@ -45,22 +53,27 @@ final class ResultPopover: NSObject {
         originalText = original
         translatedText = translated
         retryAction = retry
+        editOriginalAction = editOriginal
+        reselectAction = reselect
         favoriteAction = favorite
 
+        let usesScreenshotActions = reselect != nil || editOriginal != nil
+        let contentHeight: CGFloat = usesScreenshotActions ? 268 : 236
+        let buttonTopY: CGFloat = usesScreenshotActions ? 44 : 12
         let text = NSTextField(labelWithString: original.isEmpty ? translated : "Original:\n\(original)\n\nTranslation:\n\(translated)")
-        text.frame = NSRect(x: 12, y: 44, width: 424, height: 180)
+        text.frame = NSRect(x: 12, y: usesScreenshotActions ? 76 : 44, width: 424, height: 180)
         text.lineBreakMode = .byWordWrapping
         text.maximumNumberOfLines = 0
 
         let copyOriginalButton = button(
             "Copy Original",
-            frame: NSRect(x: 12, y: 12, width: 104, height: 24),
+            frame: NSRect(x: 12, y: buttonTopY, width: 120, height: 24),
             action: #selector(copyOriginal),
             enabled: !original.isEmpty
         )
         let copyTranslationButton = button(
             "Copy Translation",
-            frame: NSRect(x: 124, y: 12, width: 124, height: 24),
+            frame: NSRect(x: 140, y: buttonTopY, width: 136, height: 24),
             action: #selector(copyTranslation),
             enabled: !isLoading && !translated.isEmpty
         )
@@ -70,11 +83,23 @@ final class ResultPopover: NSObject {
             action: #selector(retryTranslation),
             enabled: retry != nil && !isLoading
         )
+        let editOriginalButton = button(
+            "Edit Original",
+            frame: NSRect(x: 12, y: 12, width: 112, height: 24),
+            action: #selector(editOriginalText),
+            enabled: editOriginal != nil && !isLoading
+        )
+        let reselectButton = button(
+            "Reselect",
+            frame: NSRect(x: 132, y: 12, width: 88, height: 24),
+            action: #selector(reselectRegion),
+            enabled: reselect != nil && !isLoading
+        )
         let expandButton = button(
             "Expand",
             frame: NSRect(x: 308, y: 12, width: 56, height: 24),
             action: #selector(expand),
-            enabled: !isLoading && (!original.isEmpty || !translated.isEmpty)
+            enabled: !usesScreenshotActions && !isLoading && (!original.isEmpty || !translated.isEmpty)
         )
         let closeButton = button(
             "Close",
@@ -82,16 +107,21 @@ final class ResultPopover: NSObject {
             action: #selector(close)
         )
 
-        let content = NSView(frame: NSRect(x: 0, y: 0, width: 448, height: 236))
+        let content = NSView(frame: NSRect(x: 0, y: 0, width: 448, height: contentHeight))
         content.addSubview(text)
         content.addSubview(copyOriginalButton)
         content.addSubview(copyTranslationButton)
-        content.addSubview(retryButton)
-        content.addSubview(expandButton)
+        if usesScreenshotActions {
+            content.addSubview(editOriginalButton)
+            content.addSubview(reselectButton)
+        } else {
+            content.addSubview(retryButton)
+            content.addSubview(expandButton)
+        }
         content.addSubview(closeButton)
 
         let point = NSEvent.mouseLocation
-        let size = NSSize(width: 448, height: 236)
+        let size = NSSize(width: 448, height: contentHeight)
         let screenPoint = anchor.map { CGPoint(x: $0.midX, y: $0.midY) } ?? point
         let visibleFrame = NSScreen.screens.first(where: { $0.frame.contains(screenPoint) })?.visibleFrame ?? NSScreen.main?.visibleFrame ?? .zero
         let frame = ResultPopoverPlacement.frame(size: size, point: point, anchor: anchor, visibleFrame: visibleFrame)
@@ -136,6 +166,14 @@ final class ResultPopover: NSObject {
 
     @objc private func retryTranslation() {
         retryAction?()
+    }
+
+    @objc private func editOriginalText() {
+        editOriginalAction?()
+    }
+
+    @objc private func reselectRegion() {
+        reselectAction?()
     }
 
     @objc private func expand() {
@@ -195,6 +233,8 @@ final class ResultPopover: NSObject {
         window?.orderOut(nil)
         window = nil
         retryAction = nil
+        editOriginalAction = nil
+        reselectAction = nil
         favoriteAction = nil
     }
 }

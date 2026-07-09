@@ -47,14 +47,13 @@ final class ScreenCaptureTranslator {
 
     private func translate(region: CGRect, on screen: NSScreen) {
         let anchor = anchorRect(region: region, on: screen)
-        let displayID = screenDisplayID(screen)
         guard let image = capture(region: region, on: screen) else {
             popover.show(
                 original: "",
-                translated: "Could not capture the selected region. Check Screen Recording permission, then retry.",
+                translated: "Could not capture the selected region. Check Screen Recording permission, then reselect.",
                 anchor: anchor,
                 backgroundOpacity: popoverOpacity,
-                retry: { [weak self] in self?.retry(region: region, displayID: displayID) }
+                reselect: { [weak self] in self?.start() }
             )
             return
         }
@@ -67,34 +66,15 @@ final class ScreenCaptureTranslator {
                     await MainActor.run {
                         popover.show(
                             original: "",
-                            translated: "No text recognized. Select a clearer text region, then retry.",
+                            translated: "No text recognized. Select a clearer text region, then reselect.",
                             anchor: anchor,
                             backgroundOpacity: popoverOpacity,
-                            retry: { [weak self] in self?.retry(region: region, displayID: displayID) }
+                            reselect: { [weak self] in self?.start() }
                         )
                     }
                     return
                 }
-                let editedText = await MainActor.run {
-                    confirmOCRText(text) ?? ""
-                }
-                guard !editedText.isEmpty else { return }
-                await MainActor.run {
-                    popover.show(original: editedText, translated: "Translating...", anchor: anchor, backgroundOpacity: popoverOpacity, isLoading: true)
-                    showKeychainHintIfNeeded(original: editedText, anchor: anchor)
-                }
-                let translated = try await translation.translate(editedText)
-                await MainActor.run {
-                    let item = historyStore.add(original: editedText, translated: translated)
-                    popover.show(
-                        original: editedText,
-                        translated: translated,
-                        anchor: anchor,
-                        backgroundOpacity: popoverOpacity,
-                        retry: { [weak self] in self?.retry(region: region, displayID: displayID) },
-                        favorite: { [weak historyStore] in _ = historyStore?.toggleFavorite(id: item.id) }
-                    )
-                }
+                await translateText(text, anchor: anchor)
             } catch {
                 await MainActor.run {
                     popover.show(
@@ -102,20 +82,11 @@ final class ScreenCaptureTranslator {
                         translated: error.localizedDescription,
                         anchor: anchor,
                         backgroundOpacity: popoverOpacity,
-                        retry: { [weak self] in self?.retry(region: region, displayID: displayID) }
+                        reselect: { [weak self] in self?.start() }
                     )
                 }
             }
         }
-    }
-
-    private func retry(region: CGRect, displayID: CGDirectDisplayID?) {
-        guard let displayID,
-              let screen = NSScreen.screens.first(where: { screenDisplayID($0) == displayID }) else {
-            start()
-            return
-        }
-        translate(region: region, on: screen)
     }
 
     private func closeSelectionWindows() {
@@ -123,13 +94,55 @@ final class ScreenCaptureTranslator {
         selectionWindows = []
     }
 
-    private func confirmOCRText(_ text: String) -> String? {
+    private func translateText(_ text: String, anchor: CGRect) async {
+        let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        await MainActor.run {
+            popover.show(original: text, translated: "Translating...", anchor: anchor, backgroundOpacity: popoverOpacity, isLoading: true)
+            showKeychainHintIfNeeded(original: text, anchor: anchor)
+        }
+        do {
+            let translated = try await translation.translate(text)
+            await MainActor.run {
+                let item = historyStore.add(original: text, translated: translated)
+                showScreenshotResult(
+                    original: text,
+                    translated: translated,
+                    anchor: anchor,
+                    favorite: { [weak historyStore] in _ = historyStore?.toggleFavorite(id: item.id) }
+                )
+            }
+        } catch {
+            await MainActor.run {
+                showScreenshotResult(original: text, translated: error.localizedDescription, anchor: anchor)
+            }
+        }
+    }
+
+    private func showScreenshotResult(original: String, translated: String, anchor: CGRect, favorite: (() -> Void)? = nil) {
+        popover.show(
+            original: original,
+            translated: translated,
+            anchor: anchor,
+            backgroundOpacity: popoverOpacity,
+            editOriginal: { [weak self] in self?.editAndRetranslate(original, anchor: anchor) },
+            reselect: { [weak self] in self?.start() },
+            favorite: favorite
+        )
+    }
+
+    private func editAndRetranslate(_ text: String, anchor: CGRect) {
+        guard let editedText = editOCRText(text) else { return }
+        Task {
+            await translateText(editedText, anchor: anchor)
+        }
+    }
+
+    private func editOCRText(_ text: String) -> String? {
         let alert = NSAlert()
-        alert.messageText = "Confirm OCR Text"
-        alert.informativeText = "Edit recognized text before translation."
-        alert.addButton(withTitle: "Translate")
-        alert.addButton(withTitle: "Copy OCR Text")
-        alert.addButton(withTitle: "Reselect")
+        alert.messageText = "Edit Original Text"
+        alert.informativeText = "Correct recognized text before retranslating."
+        alert.addButton(withTitle: "Retranslate")
         alert.addButton(withTitle: "Cancel")
 
         let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: 420, height: 160))
@@ -142,13 +155,6 @@ final class ScreenCaptureTranslator {
         switch alert.runModal() {
         case .alertFirstButtonReturn:
             return textView.string.trimmingCharacters(in: .whitespacesAndNewlines)
-        case .alertSecondButtonReturn:
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(textView.string, forType: .string)
-            return nil
-        case NSApplication.ModalResponse(rawValue: NSApplication.ModalResponse.alertFirstButtonReturn.rawValue + 2):
-            start()
-            return nil
         default:
             return nil
         }
@@ -194,10 +200,5 @@ final class ScreenCaptureTranslator {
             width: region.width,
             height: region.height
         )
-    }
-
-    private func screenDisplayID(_ screen: NSScreen) -> CGDirectDisplayID? {
-        (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)
-            .map { CGDirectDisplayID(truncating: $0) }
     }
 }
