@@ -29,8 +29,26 @@ final class ScreenCaptureTranslator {
             return
         }
 
-        selectionWindows = NSScreen.screens.map { screen in
-            RegionSelectionWindow(screen: screen) { [weak self] rect in
+        let screens = NSScreen.screens
+        let initialActiveScreen = screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main ?? screens.first
+        var windows: [RegionSelectionWindow] = []
+        func activate(_ activeScreen: NSScreen) {
+            windows.forEach { window in
+                let isActive = window.selectionScreen === activeScreen
+                window.setActive(isActive)
+                if isActive {
+                    window.makeKeyAndOrderFront(nil)
+                    window.makeFirstResponder(window.contentView)
+                }
+            }
+        }
+
+        windows = screens.map { screen in
+            RegionSelectionWindow(
+                screen: screen,
+                isActive: initialActiveScreen.map { screen === $0 } ?? false,
+                onActivate: { activate(screen) }
+            ) { [weak self] rect in
                 DispatchQueue.main.async {
                     self?.closeSelectionWindows()
                     guard let rect else { return }
@@ -38,10 +56,13 @@ final class ScreenCaptureTranslator {
                 }
             }
         }
+        selectionWindows = windows
         NSApp.activate(ignoringOtherApps: true)
         selectionWindows.forEach { window in
-            window.makeKeyAndOrderFront(nil)
-            window.makeFirstResponder(window.contentView)
+            window.orderFrontRegardless()
+        }
+        if let initialActiveScreen {
+            activate(initialActiveScreen)
         }
     }
 
@@ -53,7 +74,7 @@ final class ScreenCaptureTranslator {
                 translated: "Could not capture the selected region. Check Screen Recording permission, then reselect.",
                 anchor: anchor,
                 backgroundOpacity: popoverOpacity,
-                reselect: { [weak self] in self?.start() }
+                reselect: { [weak self] in self?.reselect() }
             )
             return
         }
@@ -69,7 +90,7 @@ final class ScreenCaptureTranslator {
                             translated: "No text recognized. Select a clearer text region, then reselect.",
                             anchor: anchor,
                             backgroundOpacity: popoverOpacity,
-                            reselect: { [weak self] in self?.start() }
+                            reselect: { [weak self] in self?.reselect() }
                         )
                     }
                     return
@@ -82,11 +103,16 @@ final class ScreenCaptureTranslator {
                         translated: error.localizedDescription,
                         anchor: anchor,
                         backgroundOpacity: popoverOpacity,
-                        reselect: { [weak self] in self?.start() }
+                        reselect: { [weak self] in self?.reselect() }
                     )
                 }
             }
         }
+    }
+
+    private func reselect() {
+        popover.dismissMain()
+        start()
     }
 
     private func closeSelectionWindows() {
@@ -126,7 +152,7 @@ final class ScreenCaptureTranslator {
             anchor: anchor,
             backgroundOpacity: popoverOpacity,
             editOriginal: { [weak self] in self?.editAndRetranslate(original, anchor: anchor) },
-            reselect: { [weak self] in self?.start() },
+            reselect: { [weak self] in self?.reselect() },
             favorite: favorite
         )
     }

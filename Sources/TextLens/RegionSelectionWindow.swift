@@ -1,27 +1,45 @@
 import AppKit
 
 final class RegionSelectionWindow: NSWindow {
-    init(screen: NSScreen, onSelect: @escaping (CGRect?) -> Void) {
-        let view = RegionSelectionView(frame: CGRect(origin: .zero, size: screen.frame.size), onSelect: onSelect)
+    let selectionScreen: NSScreen
+
+    init(screen: NSScreen, isActive: Bool, onActivate: @escaping () -> Void, onSelect: @escaping (CGRect?) -> Void) {
+        self.selectionScreen = screen
+        let view = RegionSelectionView(
+            frame: CGRect(origin: .zero, size: screen.frame.size),
+            isActive: isActive,
+            onActivate: onActivate,
+            onSelect: onSelect
+        )
         super.init(contentRect: screen.frame, styleMask: [.borderless], backing: .buffered, defer: false)
         level = .screenSaver
         backgroundColor = .clear
         isOpaque = false
         isReleasedWhenClosed = false
         ignoresMouseEvents = false
+        acceptsMouseMovedEvents = true
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         contentView = view
     }
 
     override var canBecomeKey: Bool { true }
+
+    func setActive(_ isActive: Bool) {
+        (contentView as? RegionSelectionView)?.setActive(isActive)
+    }
 }
 
 private final class RegionSelectionView: NSView {
+    private var isActive: Bool
+    private let onActivate: () -> Void
     private let onSelect: (CGRect?) -> Void
     private var start: CGPoint?
     private var current: CGPoint?
+    private var trackingArea: NSTrackingArea?
 
-    init(frame: CGRect, onSelect: @escaping (CGRect?) -> Void) {
+    init(frame: CGRect, isActive: Bool, onActivate: @escaping () -> Void, onSelect: @escaping (CGRect?) -> Void) {
+        self.isActive = isActive
+        self.onActivate = onActivate
         self.onSelect = onSelect
         super.init(frame: frame)
         wantsLayer = true
@@ -33,7 +51,28 @@ private final class RegionSelectionView: NSView {
 
     override var acceptsFirstResponder: Bool { true }
 
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func updateTrackingAreas() {
+        if let trackingArea {
+            removeTrackingArea(trackingArea)
+        }
+        let trackingArea = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self
+        )
+        addTrackingArea(trackingArea)
+        self.trackingArea = trackingArea
+        super.updateTrackingAreas()
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        activate()
+    }
+
     override func mouseDown(with event: NSEvent) {
+        activate()
         start = convert(event.locationInWindow, from: nil)
         current = start
         needsDisplay = true
@@ -65,11 +104,24 @@ private final class RegionSelectionView: NSView {
         }
     }
 
+    func setActive(_ isActive: Bool) {
+        guard self.isActive != isActive else { return }
+        self.isActive = isActive
+        needsDisplay = true
+    }
+
+    private func activate() {
+        guard !isActive else { return }
+        onActivate()
+    }
+
     override func draw(_ dirtyRect: NSRect) {
-        NSColor.black.withAlphaComponent(0.25).setFill()
+        NSColor.black.withAlphaComponent(isActive ? 0.25 : 0.16).setFill()
         bounds.fill()
 
-        drawCancelHint()
+        if isActive {
+            drawCancelHint()
+        }
 
         guard let start, let current else { return }
         let rect = CGRect(
@@ -80,8 +132,10 @@ private final class RegionSelectionView: NSView {
         )
         NSColor.clear.setFill()
         rect.fill(using: .copy)
+        let path = NSBezierPath(rect: rect)
+        path.lineWidth = 2
         NSColor.systemBlue.setStroke()
-        NSBezierPath(rect: rect).stroke()
+        path.stroke()
     }
 
     private func drawCancelHint() {

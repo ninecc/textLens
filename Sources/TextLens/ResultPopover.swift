@@ -37,6 +37,10 @@ final class ResultPopover: NSObject {
         }
     }
 
+    func dismissMain() {
+        close()
+    }
+
     private func present(
         original: String,
         translated: String,
